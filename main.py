@@ -51,42 +51,6 @@ def fetch_restaurant_reviews(establishment_id):
 
 # Initialize main window
 def init_main_window():
-    root = tk.Tk()
-    root.title("GrubHub")
-    root.iconbitmap("src/Icon.ico")
-    root.geometry("1980x1020")
-    root.configure(background="#FFF2DC")
-
-    # Apply styles
-    style = ttk.Style()
-    style.configure("TFrame", background="#FFF2DC")
-    style.configure("TLabel", font=("Inter", 10), background="#FFF2DC")
-    style.configure("TButton", font=("Inter", 10))
-    style.configure("TEntry", font=("Inter", 10))
-    style.configure("TNotebook", font=("Inter", 10))
-    style.configure("TNotebook.Tab", font=("Inter", 10, "bold"))
-    style.configure("Treeview.Heading", font=("Inter", 10, "bold"))
-
-    # Header
-    header_frame = ttk.Frame(root)
-    header_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
-    icon = tk.PhotoImage(file="src/Icon.png")
-    icon_scaled = icon.subsample(3,3)
-    lbl_header = ttk.Label(header_frame, image=icon_scaled, justify="center")
-    lbl_header.pack(side=tk.LEFT, padx=5)
-    lbl_header2 = ttk.Label(header_frame, text="GrubHub", justify="center", font=("Inter", 14, "bold"))
-    lbl_header2.pack(side=tk.LEFT, padx=5)
-
-    # Search bar
-    search_frame = ttk.Frame(root)
-    search_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
-    
-    lbl_search = ttk.Label(search_frame, text="Search", font=("Inter", 10))
-    lbl_search.pack(side=tk.LEFT, padx=5)
-    
-    entry_search = ttk.Entry(search_frame, width=30)
-    entry_search.pack(side=tk.LEFT, padx=5)
-    
     # Function to search and sort restaurants
     def search_sort_restaurants():
         query = entry_search.get().lower()
@@ -146,39 +110,11 @@ def init_main_window():
             conn.close()
             
             update_table(rows)
-
     
-    # Dropdown for rating filter
-    rating_var = tk.StringVar()
-    rating_options = ["None", "1 Star", "2 Stars and Up", "3 Stars and Up", "4 Stars and Up", "5 Stars"]
-    rating_dropdown = ttk.Combobox(search_frame, textvariable=rating_var, values=rating_options, state="readonly")
-    rating_dropdown.set("None")
-    rating_dropdown.pack(side=tk.LEFT, padx=5)
-
-    # Sorting
-    lbl_sort = ttk.Label(search_frame, text="Sort", font=("Inter", 10))
-    lbl_sort.pack(side=tk.LEFT, padx=5)
-
-    sort_var = tk.StringVar()
-    sort_options = ["None", "Name", "Average Rating"]
-    sort_dropdown = ttk.Combobox(search_frame, textvariable=sort_var, values=sort_options, state="readonly")
-    sort_dropdown.set("None")
-    sort_dropdown.pack(side=tk.LEFT, padx=5)
-
-    sortdir_var = tk.StringVar()
-    sortdir_options = ["Ascending", "Descending"]
-    sortdir_dropdown = ttk.Combobox(search_frame, textvariable=sortdir_var, values=sortdir_options, state="readonly")
-    sortdir_dropdown.set("Ascending")
-    sortdir_dropdown.pack(side=tk.LEFT, padx=5)
-
-    btn_search_sort = ttk.Button(search_frame, text="Search & Sort", command=search_sort_restaurants)
-    btn_search_sort.pack(side=tk.LEFT, padx=5)
-
     # Function to add restaurant
     def add_restaurant():
         # Function to handle submission of restaurant details
         def submit_restaurant():
-                        # Get values from entry fields
             name = entry_name.get().strip()
             contact_info = entry_contact_info.get().strip()
             website = entry_website.get().strip()
@@ -230,6 +166,116 @@ def init_main_window():
         popup.geometry("300x250")
         popup.mainloop()
 
+    def search_sort_food_items():
+        query = entry_food_item_search.get().lower()
+        food_type_filter = food_type_var.get()
+        sort_option = sort_food_item_var.get()
+        sortdir_option = sortdir_food_item_var.get()
+        
+        conn = connect_db()
+        if conn:
+            cursor = conn.cursor()
+            
+            base_query = "SELECT fi.name, fi.price, fit.food_type FROM food_item fi NATURAL JOIN food_item_type fit"
+            query_params = []
+            conditions = []
+
+            conditions.append("fi.establishment_id = ?")
+            query_params.append(selected_restaurant_id)
+                    
+            if query:
+                conditions.append("LOWER(fi.name) LIKE ?")
+                query_params.append(f"%{query}%")
+                    
+            if food_type_filter != "None":
+                conditions.append("fit.food_type LIKE ?")
+                query_params.append(f"%{food_type_filter}%")
+                    
+            if conditions:
+                base_query += " WHERE " + " AND ".join(conditions)
+                    
+            if sort_option == "Price":
+                base_query += " ORDER BY fi.price"
+            else:
+                base_query += " ORDER BY fi.name"
+                    
+            if sortdir_option.lower() == "descending":
+                base_query += " DESC"
+
+            cursor.execute(base_query, query_params)
+            rows = cursor.fetchall()
+            conn.close()
+            
+            update_food_items_table(rows)
+        
+    def on_treeview_select(event):
+        # Get the selected item
+        item = tree.selection()[0]
+        
+        # Get the data from the selected item
+        data = tree.item(item, "values")
+
+        global selected_restaurant_id
+        selected_restaurant_id = data[0]
+
+        # Fetch and display food items and reviews associated with selected restaurant
+        food_items = fetch_food_items(data[0])
+        update_food_items_table(food_items)
+        restaurant_reviews = fetch_restaurant_reviews(data[0])
+        update_restaurant_reviews_table(restaurant_reviews)
+
+    root = tk.Tk()
+    root.title("GrubHub")
+    root.iconbitmap("src/Icon.ico")
+    root.geometry("1980x1020")
+    root.configure(background="#FFF2DC")
+
+    # Apply styles
+    style = ttk.Style()
+    style.configure("TFrame", background="#FFF2DC")
+    style.configure("TLabel", font=("Inter", 10), background="#FFF2DC")
+    style.configure("TButton", font=("Inter", 10))
+    style.configure("TEntry", font=("Inter", 10))
+    style.configure("TNotebook", font=("Inter", 10))
+    style.configure("TNotebook.Tab", font=("Inter", 10, "bold"))
+    style.configure("Treeview.Heading", font=("Inter", 10, "bold"))
+
+    # Search bar
+    search_frame = ttk.Frame(root)
+    search_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
+    
+    lbl_search = ttk.Label(search_frame, text="Search", font=("Inter", 10))
+    lbl_search.pack(side=tk.LEFT, padx=5)
+    
+    entry_search = ttk.Entry(search_frame, width=30)
+    entry_search.pack(side=tk.LEFT, padx=5)
+
+    # Dropdown for rating filter
+    rating_var = tk.StringVar()
+    rating_options = ["None", "1 Star", "2 Stars and Up", "3 Stars and Up", "4 Stars and Up", "5 Stars"]
+    rating_dropdown = ttk.Combobox(search_frame, textvariable=rating_var, values=rating_options, state="readonly")
+    rating_dropdown.set("None")
+    rating_dropdown.pack(side=tk.LEFT, padx=5)
+
+    # Sorting
+    lbl_sort = ttk.Label(search_frame, text="Sort", font=("Inter", 10))
+    lbl_sort.pack(side=tk.LEFT, padx=5)
+
+    sort_var = tk.StringVar()
+    sort_options = ["None", "Name", "Average Rating"]
+    sort_dropdown = ttk.Combobox(search_frame, textvariable=sort_var, values=sort_options, state="readonly")
+    sort_dropdown.set("None")
+    sort_dropdown.pack(side=tk.LEFT, padx=5)
+
+    sortdir_var = tk.StringVar()
+    sortdir_options = ["Ascending", "Descending"]
+    sortdir_dropdown = ttk.Combobox(search_frame, textvariable=sortdir_var, values=sortdir_options, state="readonly")
+    sortdir_dropdown.set("Ascending")
+    sortdir_dropdown.pack(side=tk.LEFT, padx=5)
+
+    btn_search_sort = ttk.Button(search_frame, text="Search & Sort", command=search_sort_restaurants)
+    btn_search_sort.pack(side=tk.LEFT, padx=5)
+
     # Add restaurant
     btn_add_restaurant = ttk.Button(search_frame, text="Add Restaurant", command=add_restaurant)
     btn_add_restaurant.pack(side=tk.RIGHT, padx=5)
@@ -242,6 +288,58 @@ def init_main_window():
         tree.column(col, anchor="center", width=50)
 
     tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
+
+    # Food Items
+    # Function to add food item
+    def add_food_item():
+        return
+    
+    food_item_frame = ttk.Frame(root)
+    food_item_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
+
+    # Add food item
+    btn_add_food_item = ttk.Button(food_item_frame, text="Add Food Item", command=add_food_item)
+    btn_add_food_item.pack(side=tk.RIGHT, padx=5)
+
+    lbl_food_item_search = ttk.Label(food_item_frame, text="Search", font=("Inter", 10))
+    lbl_food_item_search.pack(side=tk.LEFT, padx=5)
+    
+    entry_food_item_search = ttk.Entry(food_item_frame, width=30)
+    entry_food_item_search.pack(side=tk.LEFT, padx=5)
+
+    # Get food types
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT food_type FROM food_item_type ORDER BY food_type")
+        food_type_options = cursor.fetchall()
+        food_type_options.append("None")
+        conn.close()
+
+    # Dropdown for rating filter
+    food_type_var = tk.StringVar()
+    food_type_dropdown = ttk.Combobox(food_item_frame, textvariable=food_type_var, values=food_type_options, state="readonly")
+    food_type_dropdown.set("None")
+    food_type_dropdown.pack(side=tk.LEFT, padx=5)
+
+    # Sorting
+    lbl_sort_food_item = ttk.Label(food_item_frame, text="Sort", font=("Inter", 10))
+    lbl_sort_food_item.pack(side=tk.LEFT, padx=5)
+
+    sort_food_item_var = tk.StringVar()
+    sort_food_item_options = ["None", "Name", "Price"]
+    sort_food_item_dropdown = ttk.Combobox(food_item_frame, textvariable=sort_food_item_var, values=sort_food_item_options, state="readonly")
+    sort_food_item_dropdown.set("None")
+    sort_food_item_dropdown.pack(side=tk.LEFT, padx=5)
+
+    sortdir_food_item_var = tk.StringVar()
+    sortdir_food_item_options = ["Ascending", "Descending"]
+    sortdir_food_item_dropdown = ttk.Combobox(food_item_frame, textvariable=sortdir_food_item_var, values=sortdir_food_item_options, state="readonly")
+    sortdir_food_item_dropdown.set("Ascending")
+    sortdir_food_item_dropdown.pack(side=tk.LEFT, padx=5)
+
+    btn_search_sort = ttk.Button(food_item_frame, text="Search & Sort", command=search_sort_food_items)
+    btn_search_sort.pack(side=tk.LEFT, padx=5)
     
     # Table for displaying food items
     food_items_columns = ("Name", "Price", "Food Type")
@@ -260,21 +358,6 @@ def init_main_window():
         restaurant_reviews_tree.column(col, anchor="center", width=50)
 
     restaurant_reviews_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
-    
-    def on_treeview_select(event):
-        # Get the selected item
-        item = tree.selection()[0]
-        
-        # Get the data from the selected item
-        data = tree.item(item, "values")
-
-
-        
-        # Fetch and display food items and reviews associated with selected restaurant
-        food_items = fetch_food_items(data[0])
-        update_food_items_table(food_items)
-        restaurant_reviews = fetch_restaurant_reviews(data[0])
-        update_restaurant_reviews_table(restaurant_reviews)
         
     tree.bind("<<TreeviewSelect>>", on_treeview_select)
 
@@ -292,14 +375,13 @@ def init_main_window():
         for row in rows:
             food_items_tree.insert("", tk.END, values=row)
             
+    # Update restaurant reviews table
     def update_restaurant_reviews_table(rows):
         for row in restaurant_reviews_tree.get_children():
             restaurant_reviews_tree.delete(row)
         for row in rows:
             restaurant_reviews_tree.insert("", tk.END, values=row)
-    
 
-    
     # Load initial data
     restaurants = fetch_restaurants()
     update_table(restaurants)
