@@ -253,7 +253,7 @@ def init_main_window():
     food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
     
     # Table for displaying restaurant reviews
-    restaurant_reviews_columns = ("Name", "Price", "Food Type")
+    restaurant_reviews_columns = ("Username", "Content", "Rating")
     restaurant_reviews_tree = ttk.Treeview(root, columns=restaurant_reviews_columns, show="headings", height=10)
     for col in restaurant_reviews_columns:
         restaurant_reviews_tree.heading(col, text=col)
