@@ -170,6 +170,8 @@ def init_main_window():
         query = entry_food_item_search.get().lower()
         food_type_filter = food_type_var.get()
         sort_option = sort_food_item_var.get()
+        price_range_min = pricerange_min.get()
+        price_range_max = pricerange_max.get()
         sortdir_option = sortdir_food_item_var.get()
         
         conn = connect_db()
@@ -193,6 +195,11 @@ def init_main_window():
                     
             if conditions:
                 base_query += " WHERE " + " AND ".join(conditions)
+            
+            if price_range_min or price_range_max:
+                base_query += " AND fi.price BETWEEN ? AND ?"
+                query_params.append(int(price_range_min))
+                query_params.append(int(price_range_max))
                     
             if sort_option == "Price":
                 base_query += " ORDER BY fi.price"
@@ -337,6 +344,18 @@ def init_main_window():
     sortdir_food_item_dropdown = ttk.Combobox(food_item_frame, textvariable=sortdir_food_item_var, values=sortdir_food_item_options, state="readonly")
     sortdir_food_item_dropdown.set("Ascending")
     sortdir_food_item_dropdown.pack(side=tk.LEFT, padx=5)
+
+    lbl_pricerange = ttk.Label(food_item_frame, text="Price Range", font=("Inter", 10))
+    lbl_pricerange.pack(side=tk.LEFT, padx=5)
+    
+    pricerange_min = ttk.Entry(food_item_frame, width=20)
+    pricerange_min.pack(side=tk.LEFT, padx=5)
+
+    lbl_pricerange = ttk.Label(food_item_frame, text="-", font=("Inter", 10))
+    lbl_pricerange.pack(side=tk.LEFT, padx=5)
+
+    pricerange_max = ttk.Entry(food_item_frame, width=20)
+    pricerange_max.pack(side=tk.LEFT, padx=5)
 
     btn_search_sort = ttk.Button(food_item_frame, text="Search & Sort", command=search_sort_food_items)
     btn_search_sort.pack(side=tk.LEFT, padx=5)
