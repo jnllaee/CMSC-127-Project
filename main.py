@@ -27,6 +27,28 @@ def fetch_restaurants():
         return rows
     return []
 
+# Fetch all food items of the selected item (based on the restaurant selected) from the database
+def fetch_food_items(establishment_id):
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT fi.name, fi.price, fit.food_type FROM food_item fi NATURAL JOIN food_item_type fit WHERE establishment_id = ?", (establishment_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    return []
+
+# Fetch all restaurants from the database
+def fetch_restaurant_reviews(establishment_id):
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT c.username, r.content, r.rating, r.date FROM customer c NATURAL JOIN establishment_reviews r WHERE r.establishment_id = ?", (establishment_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    return []
+
 # Initialize main window
 def init_main_window():
     root = tk.Tk()
@@ -228,12 +250,30 @@ def init_main_window():
     
     # Table for displaying restaurants
     columns = ("ID", "Name", "Contact Info", "Average Rating", "Website", "Location")
-    tree = ttk.Treeview(root, columns=columns, show="headings")
+    tree = ttk.Treeview(root, columns=columns, show="headings", height=10)
     for col in columns:
         tree.heading(col, text=col)
-        tree.column(col, anchor="center")
+        tree.column(col, anchor="center", width=50)
 
-    tree.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=10, pady=10)
+    tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
+    
+    # Table for displaying food items
+    food_items_columns = ("Name", "Price", "Food Type")
+    food_items_tree = ttk.Treeview(root, columns=food_items_columns, show="headings", height=10)
+    for col in food_items_columns:
+        food_items_tree.heading(col, text=col)
+        food_items_tree.column(col, anchor="center", width=50)
+
+    food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
+    
+    # Table for displaying restaurant reviews
+    restaurant_reviews_columns = ("Name", "Price", "Food Type")
+    restaurant_reviews_tree = ttk.Treeview(root, columns=restaurant_reviews_columns, show="headings", height=10)
+    for col in restaurant_reviews_columns:
+        restaurant_reviews_tree.heading(col, text=col)
+        restaurant_reviews_tree.column(col, anchor="center", width=50)
+
+    restaurant_reviews_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
     
     def on_treeview_select(event):
         # Get the selected item
@@ -242,156 +282,33 @@ def init_main_window():
         # Get the data from the selected item
         data = tree.item(item, "values")
         
-        # Create a popup window to display the data
-        popup = tk.Toplevel(root)
-        popup.title("Restaurant Details")
-        popup.configure(background="#FFF2DC")
-        
-        # Display the restaurant details
-        for i, col in enumerate(columns):
-            ttk.Label(popup, text=col).grid(row=i, column=0, padx=5, pady=2)
-            ttk.Label(popup, text=data[i]).grid(row=i, column=1, padx=5, pady=2)
-        
-        # Fetch food items associated with the selected restaurant
-        conn = connect_db()
-        if conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT fi.name, fi.price, fit.food_type FROM food_item fi NATURAL JOIN food_item_type fit WHERE establishment_id = ?", (data[0],))
-            food_items = cursor.fetchall()
-            
-            # Display the food items in the popup window
-            ttk.Label(popup, text="Food Items", font=("Inter", 10, "bold")).grid(row=len(columns), column=0, columnspan=2, padx=5, pady=2)
-            for i, (name, price, food_type) in enumerate(food_items, start=len(columns) + 1):
-                ttk.Label(popup, text=f"{name} ({food_type}) - ₱{price}").grid(row=i, column=0, columnspan=2, padx=5, pady=2)
-            
-            cursor.execute("SELECT c.username, r.content, r.rating, r.date FROM customer c NATURAL JOIN establishment_reviews r WHERE r.establishment_id = ?", (data[0],))
-            reviews = cursor.fetchall()
-            conn.close()
-
-            # Display the restaurant reviews in the popup window
-            ttk.Label(popup, text="Restaurant Reviews", font=("Inter", 10, "bold")).grid(row=len(food_items) + len(columns) + 1, column=0, columnspan=2, padx=5, pady=2)
-            review_frame = ttk.Frame(popup)
-            review_frame.grid(row=len(food_items) + len(columns) + 2, column=0, columnspan=2, padx=5, pady=2)
-            for j, (username, content, rating, date) in enumerate(reviews, start=1):
-                ttk.Label(review_frame, text=f"User: {username} | Rating: {rating} | Date: {date}", font=("Inter", 10)).grid(row=j, column=0, columnspan=2, padx=5, pady=2)
-                ttk.Label(review_frame, text=f"Review: {content}", wraplength=400, justify="left").grid(row=j+1, column=0, columnspan=2, padx=5, pady=2)
-
-            def edit_restaurant(data):
-                def save_changes():
-                    # Get new values from entry fields
-                    new_name = entry_name.get().strip()
-                    new_contact_info = entry_contact_info.get().strip()
-                    new_website = entry_website.get().strip()
-                    new_location = entry_location.get().strip()
-
-                    # Update restaurant record in the database
-                    conn = connect_db()
-                    if conn:
-                        cursor = conn.cursor()
-                        cursor.execute("UPDATE food_establishment SET name=?, contact_info=?, website=?, location=? WHERE establishment_id=?",
-                                    (new_name, new_contact_info, new_website, new_location, data[0]))
-                        conn.commit()
-                        conn.close()
-                        messagebox.showinfo("Success", "Restaurant details updated successfully")
-                        popup.destroy()
-
-                # Create pop-up window for editing restaurant
-                popup = tk.Toplevel(root)
-                popup.title("Edit Restaurant")
-                popup.configure(background="#FFF2DC")
-
-                # Design the UI
-                ttk.Label(popup, text="Name:").grid(row=0, column=0, padx=5, pady=5)
-                entry_name = ttk.Entry(popup)
-                entry_name.insert(0, data[1])
-                entry_name.grid(row=0, column=1, padx=5, pady=5)
-
-                ttk.Label(popup, text="Contact Info:").grid(row=1, column=0, padx=5, pady=5)
-                entry_contact_info = ttk.Entry(popup)
-                entry_contact_info.insert(0, data[2])
-                entry_contact_info.grid(row=1, column=1, padx=5, pady=5)
-
-                ttk.Label(popup, text="Website:").grid(row=2, column=0, padx=5, pady=5)
-                entry_website = ttk.Entry(popup)
-                entry_website.insert(0, data[4])
-                entry_website.grid(row=2, column=1, padx=5, pady=5)
-
-                ttk.Label(popup, text="Location:").grid(row=3, column=0, padx=5, pady=5)
-                entry_location = ttk.Entry(popup)
-                entry_location.insert(0, data[5])
-                entry_location.grid(row=3, column=1, padx=5, pady=5)
-
-                # Show food items
-                def edit_food_items(data):
-                    popup = tk.Toplevel(root)
-                    popup.title("Edit Food Items")
-                    popup.configure(background="#FFF2DC")
-                    
-                # Show reviews
-                def edit_restaurant_reviews(data):
-                    popup = tk.Toplevel(root)
-                    popup.title("Edit Reviews")
-                    popup.configure(background="#FFF2DC")
-                    
-
-                ttk.Button(popup, text="Edit Food Items", command=lambda: edit_food_items(data)).grid(row=4, column=0, padx=5, pady=5)
-                ttk.Button(popup, text="Edit Restaurant Reviews", command=lambda: edit_restaurant_reviews(data)).grid(row=4, column=1, padx=5, pady=5)
-
-                # Add save button
-                btn_save = ttk.Button(popup, text="Save Changes", command=save_changes)
-                btn_save.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
-
-                # Adjust pop-up window dimensions
-                popup.geometry("300x200")
-
-            def delete_restaurant(data):
-                def confirm_delete():
-                    # Delete restaurant record from the database
-                    conn = connect_db()
-                    if conn:
-                        cursor = conn.cursor()
-                        cursor.execute("DELETE FROM food_establishment WHERE establishment_id=?", (data[0],))
-                        conn.commit()
-                        conn.close()
-                        messagebox.showinfo("Success", "Restaurant deleted successfully")
-                        popup.destroy()
-                        popup.destroy()
-
-                # Create pop-up window for confirmation
-                popup = tk.Toplevel(root)
-                popup.title("Confirm Delete")
-                popup.configure(background="#FFF2DC")
-
-                # Ask for confirmation
-                confirmation_msg = f"Are you sure you want to delete {data[1]}?"
-                ttk.Label(popup, text=confirmation_msg).pack(padx=10, pady=10)
-
-                # Add confirmation buttons
-                btn_confirm = ttk.Button(popup, text="Confirm", command=confirm_delete)
-                btn_confirm.pack(side=tk.LEFT, padx=5, pady=5)
-
-                btn_cancel = ttk.Button(popup, text="Cancel", command=popup.destroy)
-                btn_cancel.pack(side=tk.RIGHT, padx=5, pady=5)
-
-                # Adjust pop-up window dimensions
-                popup.geometry("300x100")
-            
-            edit_button = ttk.Button(popup, text="Edit Restaurant", command=lambda: edit_restaurant(data))
-            edit_button.grid(row=len(food_items) + len(columns) + 3, column=0, padx=5, pady=2)
-
-            delete_button = ttk.Button(popup, text="Delete Restaurant", command=lambda: delete_restaurant(data))
-            delete_button.grid(row=len(food_items) + len(columns) + 3, column=1, padx=5, pady=2)
-        
-        # Adjust pop-up window dimensions
-        popup.geometry("")
+        # Fetch and display food items and reviews associated with selected restaurant
+        food_items = fetch_food_items(data[0])
+        update_food_items_table(food_items)
+        restaurant_reviews = fetch_restaurant_reviews(data[0])
+        update_restaurant_reviews_table(restaurant_reviews)
         
     tree.bind("<<TreeviewSelect>>", on_treeview_select)
 
+    # Update restaurant details table
     def update_table(rows):
         for row in tree.get_children():
             tree.delete(row)
         for row in rows:
             tree.insert("", tk.END, values=row)
+      
+    # Update restaurant food items table
+    def update_food_items_table(rows):
+        for row in food_items_tree.get_children():
+            food_items_tree.delete(row)
+        for row in rows:
+            food_items_tree.insert("", tk.END, values=row)
+            
+    def update_restaurant_reviews_table(rows):
+        for row in restaurant_reviews_tree.get_children():
+            restaurant_reviews_tree.delete(row)
+        for row in rows:
+            restaurant_reviews_tree.insert("", tk.END, values=row)
     
     # Load initial data
     restaurants = fetch_restaurants()
