@@ -306,8 +306,10 @@ def init_main_window():
                     
             if sort_option == "Price":
                 base_query += " ORDER BY fi.price"
-            else:
+            elif sort_option == "Name":
                 base_query += " ORDER BY fi.name"
+            else:
+                base_query += " ORDER BY fi.item_id"
                     
             if sortdir_option.lower() == "descending":
                 base_query += " DESC"
@@ -384,10 +386,48 @@ def init_main_window():
         btn_submit = ttk.Button(popup, text="Submit", command=submit_food_item)
         btn_submit.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
     
-    def show_food_item_details(event):
-        def edit_food_item():
-            return
-        
+    def edit_food_item(event):
+        def submit_food_item():
+            food_item_name = entry_food_name.get().strip()
+            food_item_type = entry_food_type.get().strip()
+            food_item_price = entry_price.get().strip()
+            food_item_types = fetch_food_item_types()
+
+            conn = connect_db()
+            if conn:
+                cursor = conn.cursor()
+
+                # Check if the name field is empty
+                if not food_item_name:
+                    messagebox.showerror("Invalid Input", "Please enter the food item name")
+                    conn.close()
+                    return
+
+                # Check if the food item already exists in the restaurant
+                cursor.execute("SELECT name FROM food_item WHERE establishment_id=?", (selected_restaurant_id,))
+                all_food_items = cursor.fetchall()
+                existing_food_items = [item[0] for item in all_food_items]
+                if food_item_name in existing_food_items:
+                    messagebox.showinfo("Warning", "Food item already existing in restaurant")
+                    conn.close()
+
+                # If food item type doesn't exist, add it to the database
+                if food_item_type not in food_item_types:
+                    cursor.execute("INSERT INTO food_item_type(food_type) VALUES (?)", (food_item_type,))
+                    conn.commit()
+
+                # Get the food type id
+                cursor.execute("SELECT food_type_id FROM food_item_type WHERE food_type=?", (food_item_type,))
+                food_type_id = cursor.fetchone()[0]
+
+                # Insert the food item into the database
+                cursor.execute("UPDATE food_item SET name=?, price=?, food_type_id=? WHERE item_id=?",
+                            (food_item_name, food_item_price, food_type_id, selected_food_item_id))
+                conn.commit()
+                conn.close()
+                messagebox.showinfo("Success", "Food item updated successfully")
+                popup.destroy()
+
         def delete_food_item():
             response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this food item?")
             if response:
@@ -399,10 +439,8 @@ def init_main_window():
                     conn.close()
                     messagebox.showinfo("Success", "Food item successfully deleted")
                     popup.destroy()
-                return
     
         food_item = food_items_tree.selection()
-
         selected_food_item_id = food_items_tree.item(food_item, "values")[0]
 
         # Fetch current food item details
@@ -422,21 +460,26 @@ def init_main_window():
         popup.title("Food Item Details")
         popup.configure(background="#FFF2DC")
 
-        # Display food item details
-        ttk.Label(popup, text="Name:").grid(row=0, column=0, padx=5, pady=5)
-        ttk.Label(popup, text=food_item[0]).grid(row=0, column=1, padx=5, pady=5)
+        ttk.Label(popup, text="Food Name:").grid(row=0, column=0, padx=5, pady=5)
+        entry_food_name = ttk.Entry(popup)
+        entry_food_name.grid(row=0, column=1, padx=5, pady=5)
+        entry_food_name.insert(0, food_item[0])
 
         ttk.Label(popup, text="Price:").grid(row=1, column=0, padx=5, pady=5)
-        ttk.Label(popup, text=food_item[1]).grid(row=1, column=1, padx=5, pady=5)
+        entry_price = ttk.Entry(popup)
+        entry_price.grid(row=1, column=1, padx=5, pady=5)
+        entry_price.insert(1, food_item[1])
 
         ttk.Label(popup, text="Food Type:").grid(row=2, column=0, padx=5, pady=5)
-        ttk.Label(popup, text=food_item[2]).grid(row=2, column=1, padx=5, pady=5)
-
-        btn_edit = ttk.Button(popup, text="Edit Food Item", command=edit_food_item)
-        btn_edit.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
+        entry_food_type = ttk.Entry(popup)
+        entry_food_type.grid(row=2, column=1, padx=5, pady=5)
+        entry_food_type.insert(2, food_item[2])
 
         btn_delete = ttk.Button(popup, text="Delete Food Item", command=delete_food_item)
-        btn_delete.grid(row=6, column=0, columnspan=2, padx=5, pady=10)
+        btn_delete.grid(row=3, column=0, columnspan=2, padx=5, pady=10)
+
+        btn_edit = ttk.Button(popup, text="Submit", command=submit_food_item)
+        btn_edit.grid(row=4, column=0, columnspan=2, padx=5, pady=10)
 
         # Adjust pop-up window dimensions
         popup.geometry("")
@@ -592,7 +635,7 @@ def init_main_window():
     restaurant_reviews_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
         
     tree.bind("<<TreeviewSelect>>", on_treeview_select)
-    food_items_tree.bind("<<TreeviewSelect>>", show_food_item_details)
+    food_items_tree.bind("<<TreeviewSelect>>", edit_food_item)
 
     # Update restaurant details table
     def update_table(rows):

@@ -11,16 +11,16 @@ A database management system for recording data on food reviews and food items f
   - [] Update
   - [] Delete
   - [] Search
-- [] Add, update, delete, search a food establishment
+- [x] Add, update, delete, search a food establishment
   - [x] Add
   - [x] Update
   - [x] Delete
   - [x] Search
-- [] Add, update, delete, search a food item
+- [x] Add, update, delete, search a food item
   - [x] Add
-  - [] Update
-  - [] Delete
-  - [] Search
+  - [x] Update
+  - [x] Delete
+  - [x] Search
 
 ### Reports to be generated
 
