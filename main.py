@@ -296,7 +296,7 @@ def init_main_window():
             tree.delete(row)
         for row in rows:
             tree.insert("", tk.END, values=row)
-            
+      
     # Update restaurant food items table
     def update_food_items_table(rows):
         for row in food_items_tree.get_children():
