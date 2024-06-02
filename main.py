@@ -122,7 +122,104 @@ def init_main_window():
             conn.close()
             
             update_table(rows)
+
+    # Dropdown for rating filter
+    rating_var = tk.StringVar()
+    rating_options = ["None", "1 Star", "2 Stars and Up", "3 Stars and Up", "4 Stars and Up", "5 Stars"]
+    rating_dropdown = ttk.Combobox(search_frame, textvariable=rating_var, values=rating_options, state="readonly")
+    rating_dropdown.set("None")
+    rating_dropdown.pack(side=tk.LEFT, padx=5)
+
+    # Sorting
+    lbl_sort = ttk.Label(search_frame, text="Sort", font=("Inter", 10))
+    lbl_sort.pack(side=tk.LEFT, padx=5)
+
+    sort_var = tk.StringVar()
+    sort_options = ["None", "Name", "Average Rating"]
+    sort_dropdown = ttk.Combobox(search_frame, textvariable=sort_var, values=sort_options, state="readonly")
+    sort_dropdown.set("None")
+    sort_dropdown.pack(side=tk.LEFT, padx=5)
+
+    sortdir_var = tk.StringVar()
+    sortdir_options = ["Ascending", "Descending"]
+    sortdir_dropdown = ttk.Combobox(search_frame, textvariable=sortdir_var, values=sortdir_options, state="readonly")
+    sortdir_dropdown.set("Ascending")
+    sortdir_dropdown.pack(side=tk.LEFT, padx=5)
+
+    btn_search_sort = ttk.Button(search_frame, text="Search & Sort", command=search_sort_restaurants)
+    btn_search_sort.pack(side=tk.LEFT, padx=5)
     
+    # Function to add restaurant
+    def add_restaurant_review():
+        # Function to handle submission of restaurant details
+        def submit_restaurant_review():
+            # Get values from entry fields
+            username = entry_username.get().strip()
+            name = entry_name.get().strip()
+            
+            # Check if the username field is empty
+            if not username:
+                messagebox.showerror("Error", "Please enter the customer username")
+                return
+            
+            # Check if the name field is empty
+            if not name:
+                messagebox.showerror("Error", "Please enter the customer name")
+                return
+            
+            conn = connect_db()
+            if conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT customer_id, name FROM customer WHERE username = ?",
+                (username,))
+                existing_customer = cursor.fetchone()
+                conn.close()
+                
+                if existing_customer:
+                    if existing_customer[1] == name:
+                        customer_id = existing_customer[0]
+                        messagebox.showinfo("Success", "Customer found. Welcome back!")
+                        customer_popup.destroy()
+                        conn.close()
+                        
+                    else:
+                        messagebox.showerror("Error", "Username already in use!")
+                        return
+            else:
+                # Insert customer into the database
+                conn = connect_db()
+                if conn:
+                    cursor = conn.cursor()
+                    cursor.execute("INSERT INTO customer (username, name) VALUES (?, ?)",
+                    (username, name))
+                    conn.commit()
+                    customer_id = cursor.lastrowid()
+                    conn.close()
+                    messagebox.showinfo("Success", "Customer added successfully")
+                    customer_popup.destroy()
+                
+        # Create pop-up window
+        customer_popup = tk.Toplevel(root)
+        customer_popup.title("Add Customer")
+        customer_popup.configure(background="#FFF2DC")
+
+        # Design the UI
+        ttk.Label(customer_popup, text="Username:").grid(row=0, column=0, padx=5, pady=5)
+        entry_username = ttk.Entry(customer_popup)
+        entry_username.grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Label(customer_popup, text="Name:").grid(row=1, column=0, padx=5, pady=5)
+        entry_name = ttk.Entry(customer_popup)
+        entry_name.grid(row=1, column=1, padx=5, pady=5)
+
+        # Add submit button
+        btn_submit = ttk.Button(customer_popup, text="Submit", command=submit_restaurant_review)
+        btn_submit.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
+
+        # Adjust pop-up window dimensions
+        customer_popup.geometry("300x250")
+        customer_popup.mainloop()
+        
     # Function to add restaurant
     def add_restaurant():
         # Function to handle submission of restaurant details
@@ -177,6 +274,10 @@ def init_main_window():
         # Adjust pop-up window dimensions
         popup.geometry("300x250")
         popup.mainloop()
+        
+    # Add restaurant review
+    btn_add_restaurant_review = ttk.Button(search_frame, text="Add Restaurant Review", command=add_restaurant_review)
+    btn_add_restaurant_review.pack(side=tk.RIGHT, padx=5)
     
     def edit_restaurant():
         if not selected_restaurant_id:
