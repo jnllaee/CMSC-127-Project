@@ -27,6 +27,24 @@ def fetch_restaurants():
         return rows
     return []
 
+# Fetch all food items from the database
+def fetch_all_food_items():
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT fe.name, fi.name, fi.price, fit.food_type, fi.average_rating
+            FROM food_item fi
+            NATURAL JOIN food_item_type fit
+            JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id
+            """
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    return []
+
 # Fetch all food items of the selected item (based on the restaurant selected) from the database
 def fetch_food_items(establishment_id):
     conn = connect_db()
@@ -192,7 +210,7 @@ def init_main_window():
     btn_search_sort = ttk.Button(search_frame, text="Search & Sort", command=search_sort_restaurants)
     btn_search_sort.pack(side=tk.LEFT, padx=5)
     
-    # Function to add restaurant
+    # Function to add restaurant review
     def add_restaurant_review():
         # Function to handle submission of restaurant details
         def submit_restaurant_review():
@@ -395,6 +413,36 @@ def init_main_window():
             restaurant_reviews_tree.delete(row)
         for row in rows:
             restaurant_reviews_tree.insert("", tk.END, values=row)
+
+    # Function to display all food items in a new window
+    def show_all_food_items():
+        all_food_items = fetch_all_food_items()
+        
+        # Create pop-up window
+        popup = tk.Toplevel(root)
+        popup.title("All Food Items")
+        popup.configure(background="#FFF2DC")
+        
+        # Table for displaying all food items
+        all_food_items_columns = ("Restaurant Name", "Food Name", "Price", "Food Type", "Average Rating")
+        all_food_items_tree = ttk.Treeview(popup, columns=all_food_items_columns, show="headings", height=10)
+        for col in all_food_items_columns:
+            all_food_items_tree.heading(col, text=col)
+            all_food_items_tree.column(col, anchor="center", width=50)
+            
+        all_food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
+        
+        # Populate the table with all food items
+        for row in all_food_items:
+            all_food_items_tree.insert("", tk.END, values=row)
+        
+        # Adjust pop-up window dimensions
+        popup.geometry("800x400")
+        popup.mainloop()
+    
+    # Button to show all food items
+    btn_show_all_food_items = ttk.Button(search_frame, text="Show All Food Items", command=show_all_food_items)
+    btn_show_all_food_items.pack(side=tk.RIGHT, padx=5)
     
     # Load initial data
     restaurants = fetch_restaurants()
