@@ -38,6 +38,17 @@ def fetch_food_items(establishment_id):
         return rows
     return []
 
+def fetch_food_item_types():
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT food_type FROM food_item_type ORDER BY food_type")
+        food_type_options = cursor.fetchall()
+        food_type_options.append("None")
+        conn.close()
+        return food_type_options
+    return []
+
 # Fetch all restaurants from the database
 def fetch_restaurant_reviews(establishment_id):
     conn = connect_db()
@@ -305,8 +316,63 @@ def init_main_window():
             conn.close()
             
             update_food_items_table(rows)
+
+    def add_food_item():
+        def submit_food_item():
+            food_item_name = entry_name.get().strip()
+            food_item_type = entry_food_type.get().strip()
+            food_item_price = entry_price.get().strip()
+            food_item_types = fetch_food_item_types()
+
+            conn = connect_db()
+            if conn:
+                cursor = conn.cursor()
+                if food_item_name or food_item_type or food_item_price:
+                    cursor.execute("SELECT name FROM food_item WHERE establishment_id=?", (selected_restaurant_id,))
+                    all_food_items = cursor.fetchall()
+
+                    if food_item_name in all_food_items:
+                        messagebox.showinfo("Warning", "Food item already existing in restaurant")
+                        popup.destroy()
+                    else:
+                        cursor.execute("INSERT INTO food_item(name, price, establishment_id) VALUES (?, ?, ?)", (food_item_name, food_item_price, selected_restaurant_id,))
+
+                        cursor.execute("SELECT item_id FROM food_item WHERE name=?", (food_item_name,))
+                        new_food_item = cursor.fetchone()
+
+                        if food_item_type not in food_item_types:
+                            cursor.execute("INSERT INTO food_item_type(item_id, food_type) VALUES (?, ?)", (new_food_item[0], food_item_type,))
+                            conn.commit()
+                            messagebox.showinfo("Success", "Food item added successfully")
+                            popup.destroy()
+
+                        conn.close()
+                else:
+                    messagebox.showerror("Invalid Input", "Please fill out the fields")
+
+        # Create pop-up window
+        popup = tk.Toplevel(root)
+        popup.title("Add Food Item to Restaurant")
+        popup.configure(background="#FFF2DC")
+
+        # Design the UI
+        ttk.Label(popup, text="Food Item Name:").grid(row=0, column=0, padx=5, pady=5)
+        entry_name = ttk.Entry(popup)
+        entry_name.grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Label(popup, text="Food Type:").grid(row=1, column=0, padx=5, pady=5)
+        entry_food_type = ttk.Entry(popup)
+        entry_food_type.grid(row=1, column=1, padx=5, pady=5)
+
+        ttk.Label(popup, text="Price:").grid(row=3, column=0, padx=5, pady=5)
+        entry_price = ttk.Entry(popup)
+        entry_price.grid(row=3, column=1, padx=5, pady=5)
+
+        # Add submit button
+        btn_submit = ttk.Button(popup, text="Submit", command=submit_food_item)
+        btn_submit.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
         
-    def on_treeview_select(event):
+    def on_treeview_select(tree):
         item = tree.selection()[0]
         
         # Get the data from the selected item
@@ -315,13 +381,13 @@ def init_main_window():
         global selected_restaurant_id
         selected_restaurant_id = data[0]
 
-        edit_restaurant()
-
         # Fetch and display food items and reviews associated with selected restaurant
         food_items = fetch_food_items(data[0])
         update_food_items_table(food_items)
         restaurant_reviews = fetch_restaurant_reviews(data[0])
         update_restaurant_reviews_table(restaurant_reviews)
+
+        edit_restaurant()
 
     root = tk.Tk()
     root.title("GrubHub")
@@ -387,11 +453,6 @@ def init_main_window():
         tree.column(col, anchor="center", width=50)
 
     tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
-
-    # Food Items
-    # Function to add food item
-    def add_food_item():
-        return
     
     food_item_frame = ttk.Frame(root)
     food_item_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
@@ -406,14 +467,7 @@ def init_main_window():
     entry_food_item_search = ttk.Entry(food_item_frame, width=30)
     entry_food_item_search.pack(side=tk.LEFT, padx=5)
 
-    # Get food types
-    conn = connect_db()
-    if conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT food_type FROM food_item_type ORDER BY food_type")
-        food_type_options = cursor.fetchall()
-        food_type_options.append("None")
-        conn.close()
+    food_type_options = fetch_food_item_types()
 
     # Dropdown for rating filter
     food_type_var = tk.StringVar()
@@ -470,7 +524,8 @@ def init_main_window():
 
     restaurant_reviews_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
         
-    tree.bind("<<TreeviewSelect>>", on_treeview_select)
+    tree.bind("<<TreeviewSelect>>", on_treeview_select(tree))
+    food_items_tree.bind("<<TreeviewSelect>>", on_treeview_select(food_items_tree))
 
     # Update restaurant details table
     def update_table(rows):

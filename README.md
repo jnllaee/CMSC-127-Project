@@ -17,7 +17,7 @@ A database management system for recording data on food reviews and food items f
   - [x] Delete
   - [x] Search
 - [] Add, update, delete, search a food item
-  - [] Add
+  - [x] Add
   - [] Update
   - [] Delete
   - [] Search
