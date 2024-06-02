@@ -165,6 +165,97 @@ def init_main_window():
         # Adjust pop-up window dimensions
         popup.geometry("300x250")
         popup.mainloop()
+    
+    def edit_restaurant():
+        if not selected_restaurant_id:
+            messagebox.showerror("Error", "No restaurant selected for editing")
+            return
+        
+        # Function to handle submission of edited restaurant details
+        def submit_restaurant():
+            name = entry_name.get().strip()
+            contact_info = entry_contact_info.get().strip()
+            website = entry_website.get().strip()
+            location = entry_location.get().strip()
+
+            # Check if the name field is empty
+            if not name:
+                messagebox.showerror("Error", "Please enter the restaurant name")
+                return
+
+            # Update restaurant details in the database
+            conn = connect_db()
+            if conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE food_establishment SET name=?, contact_info=?, website=?, location=? WHERE establishment_id=?",
+                            (name, contact_info, website, location, selected_restaurant_id))
+                conn.commit()
+                conn.close()
+                messagebox.showinfo("Success", "Restaurant updated successfully")
+                popup.destroy()
+        
+        # Function to handle deletion of restaurant
+        def delete_restaurant():
+            response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this restaurant?")
+            if response:
+                conn = connect_db()
+                if conn:
+                    cursor = conn.cursor()
+                    cursor.execute("DELETE FROM food_establishment WHERE establishment_id=?", (selected_restaurant_id,))
+                    conn.commit()
+                    conn.close()
+                    messagebox.showinfo("Success", "Restaurant deleted successfully")
+                    popup.destroy()
+
+        # Fetch current restaurant details
+        conn = connect_db()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name, contact_info, website, location FROM food_establishment WHERE establishment_id=?", (selected_restaurant_id,))
+            restaurant = cursor.fetchone()
+            conn.close()
+
+        if not restaurant:
+            messagebox.showerror("Error", "Restaurant not found")
+            return
+
+        # Create pop-up window
+        popup = tk.Toplevel(root)
+        popup.title("Edit Restaurant")
+        popup.configure(background="#FFF2DC")
+
+        # Design the UI
+        ttk.Label(popup, text="Name:").grid(row=0, column=0, padx=5, pady=5)
+        entry_name = ttk.Entry(popup)
+        entry_name.grid(row=0, column=1, padx=5, pady=5)
+        entry_name.insert(0, restaurant[0])
+
+        ttk.Label(popup, text="Contact Info:").grid(row=1, column=0, padx=5, pady=5)
+        entry_contact_info = ttk.Entry(popup)
+        entry_contact_info.grid(row=1, column=1, padx=5, pady=5)
+        entry_contact_info.insert(0, restaurant[1])
+
+        ttk.Label(popup, text="Website:").grid(row=3, column=0, padx=5, pady=5)
+        entry_website = ttk.Entry(popup)
+        entry_website.grid(row=3, column=1, padx=5, pady=5)
+        entry_website.insert(0, restaurant[2])
+
+        ttk.Label(popup, text="Location:").grid(row=4, column=0, padx=5, pady=5)
+        entry_location = ttk.Entry(popup)
+        entry_location.grid(row=4, column=1, padx=5, pady=5)
+        entry_location.insert(0, restaurant[3])
+
+        # Add submit button
+        btn_submit = ttk.Button(popup, text="Submit", command=submit_restaurant)
+        btn_submit.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
+
+        # Add delete button
+        btn_delete = ttk.Button(popup, text="Delete", command=delete_restaurant)
+        btn_delete.grid(row=6, column=0, columnspan=2, padx=5, pady=10)
+
+        # Adjust pop-up window dimensions
+        popup.geometry("")
+        popup.mainloop()
 
     def search_sort_food_items():
         query = entry_food_item_search.get().lower()
@@ -216,7 +307,6 @@ def init_main_window():
             update_food_items_table(rows)
         
     def on_treeview_select(event):
-        # Get the selected item
         item = tree.selection()[0]
         
         # Get the data from the selected item
@@ -224,6 +314,8 @@ def init_main_window():
 
         global selected_restaurant_id
         selected_restaurant_id = data[0]
+
+        edit_restaurant()
 
         # Fetch and display food items and reviews associated with selected restaurant
         food_items = fetch_food_items(data[0])
