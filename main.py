@@ -32,7 +32,7 @@ def fetch_food_items(establishment_id):
     conn = connect_db()
     if conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT fi.name, fi.price, fit.food_type FROM food_item fi NATURAL JOIN food_item_type fit WHERE establishment_id = ?", (establishment_id,))
+        cursor.execute("SELECT fi.item_id, fi.name, fi.price, fit.food_type FROM food_item fi NATURAL JOIN food_item_type fit WHERE establishment_id = ?", (establishment_id,))
         rows = cursor.fetchall()
         conn.close()
         return rows
@@ -44,6 +44,7 @@ def fetch_food_item_types():
         cursor = conn.cursor()
         cursor.execute("SELECT food_type FROM food_item_type ORDER BY food_type")
         food_type_options = cursor.fetchall()
+        food_type_options = [option[0] for option in food_type_options]
         food_type_options.append("None")
         conn.close()
         return food_type_options
@@ -280,7 +281,7 @@ def init_main_window():
         if conn:
             cursor = conn.cursor()
             
-            base_query = "SELECT fi.name, fi.price, fit.food_type FROM food_item fi NATURAL JOIN food_item_type fit"
+            base_query = "SELECT fi.item_id, fi.name, fi.price, fit.food_type FROM food_item fi NATURAL JOIN food_item_type fit"
             query_params = []
             conditions = []
 
@@ -327,28 +328,39 @@ def init_main_window():
             conn = connect_db()
             if conn:
                 cursor = conn.cursor()
-                if food_item_name or food_item_type or food_item_price:
-                    cursor.execute("SELECT name FROM food_item WHERE establishment_id=?", (selected_restaurant_id,))
-                    all_food_items = cursor.fetchall()
 
-                    if food_item_name in all_food_items:
-                        messagebox.showinfo("Warning", "Food item already existing in restaurant")
-                        popup.destroy()
-                    else:
-                        cursor.execute("INSERT INTO food_item(name, price, establishment_id) VALUES (?, ?, ?)", (food_item_name, food_item_price, selected_restaurant_id,))
+                # Check if the name field is empty
+                if not food_item_name:
+                    messagebox.showerror("Invalid Input", "Please enter the food item name")
+                    conn.close()
+                    return
 
-                        cursor.execute("SELECT item_id FROM food_item WHERE name=?", (food_item_name,))
-                        new_food_item = cursor.fetchone()
+                # Check if the food item already exists in the restaurant
+                cursor.execute("SELECT name FROM food_item WHERE establishment_id=?", (selected_restaurant_id,))
+                all_food_items = cursor.fetchall()
+                existing_food_items = [item[0] for item in all_food_items]
+                if food_item_name in existing_food_items:
+                    messagebox.showinfo("Warning", "Food item already existing in restaurant")
+                    conn.close()
+                    return
 
-                        if food_item_type not in food_item_types:
-                            cursor.execute("INSERT INTO food_item_type(item_id, food_type) VALUES (?, ?)", (new_food_item[0], food_item_type,))
-                            conn.commit()
-                            messagebox.showinfo("Success", "Food item added successfully")
-                            popup.destroy()
+                # If food item type doesn't exist, add it to the database
+                if food_item_type not in food_item_types:
+                    cursor.execute("INSERT INTO food_item_type(food_type) VALUES (?)", (food_item_type,))
+                    conn.commit()
 
-                        conn.close()
-                else:
-                    messagebox.showerror("Invalid Input", "Please fill out the fields")
+                # Get the food type id
+                cursor.execute("SELECT food_type_id FROM food_item_type WHERE food_type=?", (food_item_type,))
+                food_type_id = cursor.fetchone()[0]
+
+                # Insert the food item into the database
+                cursor.execute("INSERT INTO food_item(name, price, establishment_id, food_type_id) VALUES (?, ?, ?, ?)",
+                            (food_item_name, food_item_price, selected_restaurant_id, food_type_id))
+                conn.commit()
+                conn.close()
+
+                messagebox.showinfo("Success", "Food item added successfully")
+                popup.destroy()
 
         # Create pop-up window
         popup = tk.Toplevel(root)
@@ -371,8 +383,66 @@ def init_main_window():
         # Add submit button
         btn_submit = ttk.Button(popup, text="Submit", command=submit_food_item)
         btn_submit.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
+    
+    def show_food_item_details(event):
+        def edit_food_item():
+            return
         
-    def on_treeview_select(tree):
+        def delete_food_item():
+            response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this food item?")
+            if response:
+                conn = connect_db()
+                if conn:
+                    cursor = conn.cursor()
+                    cursor.execute("DELETE FROM food_item WHERE item_id=?", (selected_food_item_id,))
+                    conn.commit()
+                    conn.close()
+                    messagebox.showinfo("Success", "Food item successfully deleted")
+                    popup.destroy()
+                return
+    
+        food_item = food_items_tree.selection()
+
+        selected_food_item_id = food_items_tree.item(food_item, "values")[0]
+
+        # Fetch current food item details
+        conn = connect_db()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT fi.name, fi.price, fit.food_type FROM food_item fi NATURAL JOIN food_item_type fit WHERE fi.item_id=? AND fi.establishment_id=?", (selected_food_item_id, selected_restaurant_id))
+            food_item = cursor.fetchone()
+            conn.close()
+
+        if not selected_food_item_id:
+            messagebox.showerror("Error", "Food item not found")
+            return
+
+        # Create pop-up window
+        popup = tk.Toplevel(root)
+        popup.title("Food Item Details")
+        popup.configure(background="#FFF2DC")
+
+        # Display food item details
+        ttk.Label(popup, text="Name:").grid(row=0, column=0, padx=5, pady=5)
+        ttk.Label(popup, text=food_item[0]).grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Label(popup, text="Price:").grid(row=1, column=0, padx=5, pady=5)
+        ttk.Label(popup, text=food_item[1]).grid(row=1, column=1, padx=5, pady=5)
+
+        ttk.Label(popup, text="Food Type:").grid(row=2, column=0, padx=5, pady=5)
+        ttk.Label(popup, text=food_item[2]).grid(row=2, column=1, padx=5, pady=5)
+
+        btn_edit = ttk.Button(popup, text="Edit Food Item", command=edit_food_item)
+        btn_edit.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
+
+        btn_delete = ttk.Button(popup, text="Delete Food Item", command=delete_food_item)
+        btn_delete.grid(row=6, column=0, columnspan=2, padx=5, pady=10)
+
+        # Adjust pop-up window dimensions
+        popup.geometry("")
+        popup.mainloop()
+        
+    def on_treeview_select(event):
         item = tree.selection()[0]
         
         # Get the data from the selected item
@@ -451,7 +521,6 @@ def init_main_window():
     for col in columns:
         tree.heading(col, text=col)
         tree.column(col, anchor="center", width=50)
-
     tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
     
     food_item_frame = ttk.Frame(root)
@@ -507,12 +576,11 @@ def init_main_window():
     btn_search_sort.pack(side=tk.LEFT, padx=5)
     
     # Table for displaying food items
-    food_items_columns = ("Name", "Price", "Food Type")
+    food_items_columns = ("ID", "Name", "Price", "Food Type")
     food_items_tree = ttk.Treeview(root, columns=food_items_columns, show="headings", height=10)
     for col in food_items_columns:
         food_items_tree.heading(col, text=col)
         food_items_tree.column(col, anchor="center", width=50)
-
     food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
     
     # Table for displaying restaurant reviews
@@ -521,11 +589,10 @@ def init_main_window():
     for col in restaurant_reviews_columns:
         restaurant_reviews_tree.heading(col, text=col)
         restaurant_reviews_tree.column(col, anchor="center", width=50)
-
     restaurant_reviews_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
         
-    tree.bind("<<TreeviewSelect>>", on_treeview_select(tree))
-    food_items_tree.bind("<<TreeviewSelect>>", on_treeview_select(food_items_tree))
+    tree.bind("<<TreeviewSelect>>", on_treeview_select)
+    food_items_tree.bind("<<TreeviewSelect>>", show_food_item_details)
 
     # Update restaurant details table
     def update_table(rows):
