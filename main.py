@@ -87,10 +87,13 @@ def init_main_window():
     entry_search = ttk.Entry(search_frame, width=30)
     entry_search.pack(side=tk.LEFT, padx=5)
     
-    # Function for searching restaurants
-    def search_restaurants():
+    # Function to search and sort restaurants
+    def search_sort_restaurants():
         query = entry_search.get().lower()
         rating_filter = rating_var.get()
+        sort_option = sort_var.get()
+        sortdir_option = sortdir_var.get()
+        
         min_rating = 1
         if rating_filter == "5 Stars":
             min_rating = 5
@@ -106,29 +109,43 @@ def init_main_window():
         conn = connect_db()
         if conn:
             cursor = conn.cursor()
-            if query:
-                if min_rating == 1:
-                    cursor.execute("SELECT * FROM food_establishment WHERE LOWER(name) LIKE ? AND average_rating = ?", (f"%{query}%", min_rating))
-                elif min_rating == 0:
-                    cursor.execute("SELECT * FROM food_establishment WHERE LOWER(name) LIKE ?", (f"%{query}%",))
-                else: 
-                    cursor.execute("SELECT * FROM food_establishment WHERE LOWER(name) LIKE ? AND average_rating >= ?", (f"%{query}%", min_rating))
+            
+            base_query = ""
+            query_params = ()
+
+            if min_rating > 1:
+                base_query = "SELECT * FROM food_establishment WHERE average_rating >= ?"
+            elif min_rating == 1:
+                base_query = "SELECT * FROM food_establishment WHERE average_rating = ?"
             else:
-                if min_rating == 1:
-                    cursor.execute("SELECT * FROM food_establishment WHERE average_rating = ?", (min_rating,))
-                elif min_rating == 0:
-                    cursor.execute("SELECT * FROM food_establishment", (min_rating,))
-                else: 
-                    cursor.execute("SELECT * FROM food_establishment WHERE average_rating >= ?", (min_rating,))
+                base_query = "SELECT * FROM food_establishment WHERE"
+            
+            if min_rating == 0:
+                if query:
+                    base_query += " LOWER(name) LIKE ?"
+                    query_params = (f"%{query}%",)
+                else:
+                    base_query = "SELECT * FROM food_establishment"
+            else:
+                if query:
+                    base_query += " AND LOWER(name) LIKE ?"
+                    query_params = (min_rating, f"%{query}%")
+                else:
+                    query_params = (min_rating,)
+            
+            if sort_option == "Name":
+                base_query += " ORDER BY name"
+            elif sort_option == "Average Rating":
+                base_query += " ORDER BY average_rating"
+            
+            if sortdir_option.lower() == "descending":
+                base_query += " DESC"
+            
+            cursor.execute(base_query, query_params)
             rows = cursor.fetchall()
-            
-            filtered_rows = []
-            for row in rows:
-                if row[3] >= min_rating:
-                    filtered_rows.append(row)
-            
-            update_table(filtered_rows)
             conn.close()
+            
+            update_table(rows)
 
     
     # Dropdown for rating filter
@@ -137,61 +154,6 @@ def init_main_window():
     rating_dropdown = ttk.Combobox(search_frame, textvariable=rating_var, values=rating_options, state="readonly")
     rating_dropdown.set("None")
     rating_dropdown.pack(side=tk.LEFT, padx=5)
-
-
-
-    # Function to search and sort restaurants
-    def search_sort_restaurants():
-        # Search restaurants
-        search_restaurants()
-
-        # Sort restaurants
-        sort_restaurants()
-    
-        # Search and Sort button
-
-
-
-
-    # Function to sort the table
-    def sort_restaurants():
-        sort_option = sort_var.get()
-        sortdir_option = sortdir_var.get()
-        rating_filter = rating_var.get()
-        min_rating = 1
-        if rating_filter == "5 Stars":
-            min_rating = 5
-        elif rating_filter == "4 Stars and Up":
-            min_rating = 4
-        elif rating_filter == "3 Stars and Up":
-            min_rating = 3
-        elif rating_filter == "2 Stars and Up":
-            min_rating = 2
-        elif rating_filter == "None":
-            min_rating = 0
-
-        conn = connect_db()
-        if conn:
-            cursor = conn.cursor()
-            if sortdir_option.lower() == "ascending":
-                if sort_option == "Name":
-                    query = "SELECT * FROM food_establishment WHERE average_rating >= ? ORDER BY name"
-                elif sort_option == "Average Rating":
-                    query = "SELECT * FROM food_establishment WHERE average_rating >= ? ORDER BY average_rating"
-                else:
-                    query = "SELECT * FROM food_establishment WHERE average_rating >= ?"
-            else:
-                if sort_option == "Name":
-                    query = "SELECT * FROM food_establishment WHERE average_rating >= ? ORDER BY name DESC"
-                elif sort_option == "Average Rating":
-                    query = "SELECT * FROM food_establishment WHERE average_rating >= ? ORDER BY average_rating DESC"
-                else:
-                    query = "SELECT * FROM food_establishment WHERE average_rating >= ?"
-            cursor.execute(query, (min_rating,))
-            rows = cursor.fetchall()
-            conn.close()
-            update_table(rows)
-
 
     # Sorting
     lbl_sort = ttk.Label(search_frame, text="Sort", font=("Inter", 10))
