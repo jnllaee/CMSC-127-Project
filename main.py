@@ -32,18 +32,33 @@ def fetch_food_items(establishment_id):
     conn = connect_db()
     if conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT fi.name, fi.price, fit.food_type FROM food_item fi NATURAL JOIN food_item_type fit WHERE establishment_id = ?", (establishment_id,))
+        cursor.execute(
+            """
+            SELECT fe.name, fi.name, fi.price, fit.food_type, fi.average_rating
+            FROM food_item fi
+            NATURAL JOIN food_item_type fit
+            JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id
+            WHERE fi.establishment_id = ?
+            """, (establishment_id,)
+        )
         rows = cursor.fetchall()
         conn.close()
         return rows
     return []
 
-# Fetch all restaurants from the database
+# Fetch all restaurant reviews from the database
 def fetch_restaurant_reviews(establishment_id):
     conn = connect_db()
     if conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT c.username, r.content, r.rating, r.date FROM customer c NATURAL JOIN establishment_reviews r WHERE r.establishment_id = ?", (establishment_id,))
+        cursor.execute(
+            """
+            SELECT c.username, r.content, r.rating, r.date
+            FROM customer c
+            NATURAL JOIN establishment_reviews r
+            WHERE r.establishment_id = ?
+            """, (establishment_id,)
+        )
         rows = cursor.fetchall()
         conn.close()
         return rows
@@ -76,6 +91,9 @@ def init_main_window():
     lbl_header.pack(side=tk.LEFT, padx=5)
     lbl_header2 = ttk.Label(header_frame, text="GrubHub", justify="center", font=("Inter", 14, "bold"))
     lbl_header2.pack(side=tk.LEFT, padx=5)
+
+    lbl_Restaurant = ttk.Label(root, text="Restaurants", font=("Inter", 14, "bold"), background="#FFF2DC")
+    lbl_Restaurant.pack(side=tk.TOP, padx=5, pady=5)
 
     # Search bar
     search_frame = ttk.Frame(root)
@@ -308,7 +326,7 @@ def init_main_window():
     # Add restaurant
     btn_add_restaurant = ttk.Button(search_frame, text="Add Restaurant", command=add_restaurant)
     btn_add_restaurant.pack(side=tk.RIGHT, padx=5)
-    
+
     # Table for displaying restaurants
     columns = ("ID", "Name", "Contact Info", "Average Rating", "Website", "Location")
     tree = ttk.Treeview(root, columns=columns, show="headings", height=10)
@@ -318,8 +336,12 @@ def init_main_window():
 
     tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
     
+    # Title for food items table
+    lbl_food_items = ttk.Label(root, text="Food Items", font=("Inter", 14, "bold"), background="#FFF2DC")
+    lbl_food_items.pack(side=tk.TOP, padx=5, pady=5)
+    
     # Table for displaying food items
-    food_items_columns = ("Name", "Price", "Food Type")
+    food_items_columns = ("Restaurant Name", "Food Name", "Price", "Food Type", "Average Rating")
     food_items_tree = ttk.Treeview(root, columns=food_items_columns, show="headings", height=10)
     for col in food_items_columns:
         food_items_tree.heading(col, text=col)
@@ -327,8 +349,11 @@ def init_main_window():
 
     food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
     
+    lbl_Reviews = ttk.Label(root, text="Reviews", font=("Inter", 14, "bold"), background="#FFF2DC")
+    lbl_Reviews.pack(side=tk.TOP, padx=5, pady=5)
+
     # Table for displaying restaurant reviews
-    restaurant_reviews_columns = ("Name", "Price", "Food Type")
+    restaurant_reviews_columns = ("Username", "Content", "Rating", "Date")
     restaurant_reviews_tree = ttk.Treeview(root, columns=restaurant_reviews_columns, show="headings", height=10)
     for col in restaurant_reviews_columns:
         restaurant_reviews_tree.heading(col, text=col)
@@ -342,8 +367,6 @@ def init_main_window():
         
         # Get the data from the selected item
         data = tree.item(item, "values")
-
-
         
         # Fetch and display food items and reviews associated with selected restaurant
         food_items = fetch_food_items(data[0])
@@ -359,7 +382,7 @@ def init_main_window():
             tree.delete(row)
         for row in rows:
             tree.insert("", tk.END, values=row)
-      
+
     # Update restaurant food items table
     def update_food_items_table(rows):
         for row in food_items_tree.get_children():
@@ -373,8 +396,6 @@ def init_main_window():
         for row in rows:
             restaurant_reviews_tree.insert("", tk.END, values=row)
     
-
-    
     # Load initial data
     restaurants = fetch_restaurants()
     update_table(restaurants)
@@ -384,4 +405,3 @@ def init_main_window():
 # Run the application
 if __name__ == "__main__":
     init_main_window()
-
