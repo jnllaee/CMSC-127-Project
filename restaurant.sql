@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS food_establishment(
     establishment_id INT(10) NOT NULL AUTO_INCREMENT,
     name VARCHAR (40) NOT NULL,
     contact_info VARCHAR(50) DEFAULT NULL,
-    average_rating INT(2) DEFAULT 0,
+    average_rating INT(2) NOT NULL DEFAULT 0,
     website VARCHAR(50) DEFAULT NULL,
     location VARCHAR (100) NOT NULL,
     PRIMARY KEY(establishment_id)
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS food_item(
     item_id INT(10) NOT NULL AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL,
     price INT(5) NOT NULL,
-    average_rating INT(2) DEFAULT 0,
+    average_rating INT(2) NOT NULL DEFAULT 0,
     establishment_id INT(10) NOT NULL,
     PRIMARY KEY(item_id),
     FOREIGN KEY(establishment_id) REFERENCES food_establishment(establishment_id)
@@ -115,19 +115,6 @@ INSERT INTO establishment_reviews (establishment_reviews_id, establishment_id, c
 (2, 2, 2, '2023-02-05', 'great ambience', 4),
 (3, 3, 3, '2024-03-06', 'classy yet comfy', 5);
 
-UPDATE food_item
-SET average_rating = (
-    SELECT ROUND(AVG(rating), 1)
-    FROM food_reviews
-    WHERE food_reviews.item_id = food_item.item_id
-);
-
-UPDATE food_establishment
-SET average_rating = (
-    SELECT ROUND(AVG(rating), 1)
-    FROM establishment_reviews
-    WHERE establishment_reviews.establishment_id = food_establishment.establishment_id
-);
 -- Features
 
 -- Add, update, and delete a food review
