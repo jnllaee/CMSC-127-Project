@@ -120,15 +120,16 @@ def init_main_window():
                     cursor.execute("SELECT * FROM food_establishment", (min_rating,))
                 else: 
                     cursor.execute("SELECT * FROM food_establishment WHERE average_rating >= ?", (min_rating,))
-        rows = cursor.fetchall()
-        
-        filtered_rows = []
-        for row in rows:
-            if row[3] >= min_rating:
-                filtered_rows.append(row)
-        
-        update_table(filtered_rows)
-        conn.close()
+            rows = cursor.fetchall()
+            
+            filtered_rows = []
+            for row in rows:
+                if row[3] >= min_rating:
+                    filtered_rows.append(row)
+            
+            update_table(filtered_rows)
+            conn.close()
+
     
     # Dropdown for rating filter
     rating_var = tk.StringVar()
@@ -137,36 +138,60 @@ def init_main_window():
     rating_dropdown.set("None")
     rating_dropdown.pack(side=tk.LEFT, padx=5)
 
-    # Search button
-    btn_search = ttk.Button(search_frame, text="Search", command=search_restaurants)
-    btn_search.pack(side=tk.LEFT, padx=5)
+
+
+    # Function to search and sort restaurants
+    def search_sort_restaurants():
+        # Search restaurants
+        search_restaurants()
+
+        # Sort restaurants
+        sort_restaurants()
+    
+        # Search and Sort button
+
+
+
 
     # Function to sort the table
     def sort_restaurants():
         sort_option = sort_var.get()
         sortdir_option = sortdir_var.get()
+        rating_filter = rating_var.get()
+        min_rating = 1
+        if rating_filter == "5 Stars":
+            min_rating = 5
+        elif rating_filter == "4 Stars and Up":
+            min_rating = 4
+        elif rating_filter == "3 Stars and Up":
+            min_rating = 3
+        elif rating_filter == "2 Stars and Up":
+            min_rating = 2
+        elif rating_filter == "None":
+            min_rating = 0
 
         conn = connect_db()
         if conn:
             cursor = conn.cursor()
             if sortdir_option.lower() == "ascending":
                 if sort_option == "Name":
-                    query = "SELECT * FROM food_establishment ORDER BY name"
+                    query = "SELECT * FROM food_establishment WHERE average_rating >= ? ORDER BY name"
                 elif sort_option == "Average Rating":
-                    query = "SELECT * FROM food_establishment ORDER BY average_rating"
+                    query = "SELECT * FROM food_establishment WHERE average_rating >= ? ORDER BY average_rating"
                 else:
-                    query = "SELECT * FROM food_establishment"
+                    query = "SELECT * FROM food_establishment WHERE average_rating >= ?"
             else:
                 if sort_option == "Name":
-                    query = "SELECT * FROM food_establishment ORDER BY name DESC"
+                    query = "SELECT * FROM food_establishment WHERE average_rating >= ? ORDER BY name DESC"
                 elif sort_option == "Average Rating":
-                    query = "SELECT * FROM food_establishment ORDER BY average_rating DESC"
+                    query = "SELECT * FROM food_establishment WHERE average_rating >= ? ORDER BY average_rating DESC"
                 else:
-                    query = "SELECT * FROM food_establishment"
-            cursor.execute(query)
+                    query = "SELECT * FROM food_establishment WHERE average_rating >= ?"
+            cursor.execute(query, (min_rating,))
             rows = cursor.fetchall()
             conn.close()
             update_table(rows)
+
 
     # Sorting
     lbl_sort = ttk.Label(search_frame, text="Sort", font=("Inter", 10))
@@ -184,15 +209,14 @@ def init_main_window():
     sortdir_dropdown.set("Ascending")
     sortdir_dropdown.pack(side=tk.LEFT, padx=5)
 
-    # Sort button
-    btn_sort = ttk.Button(search_frame, text="Sort", command=sort_restaurants)
-    btn_sort.pack(side=tk.LEFT, padx=5)
+    btn_search_sort = ttk.Button(search_frame, text="Search & Sort", command=search_sort_restaurants)
+    btn_search_sort.pack(side=tk.LEFT, padx=5)
 
     # Function to add restaurant
     def add_restaurant():
         # Function to handle submission of restaurant details
         def submit_restaurant():
-            # Get values from entry fields
+                        # Get values from entry fields
             name = entry_name.get().strip()
             contact_info = entry_contact_info.get().strip()
             website = entry_website.get().strip()
@@ -281,6 +305,8 @@ def init_main_window():
         
         # Get the data from the selected item
         data = tree.item(item, "values")
+
+
         
         # Fetch and display food items and reviews associated with selected restaurant
         food_items = fetch_food_items(data[0])
@@ -310,6 +336,8 @@ def init_main_window():
         for row in rows:
             restaurant_reviews_tree.insert("", tk.END, values=row)
     
+
+    
     # Load initial data
     restaurants = fetch_restaurants()
     update_table(restaurants)
@@ -319,3 +347,4 @@ def init_main_window():
 # Run the application
 if __name__ == "__main__":
     init_main_window()
+
