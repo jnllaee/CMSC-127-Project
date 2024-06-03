@@ -122,32 +122,6 @@ def init_main_window():
             conn.close()
             
             update_table(rows)
-
-    # Dropdown for rating filter
-    rating_var = tk.StringVar()
-    rating_options = ["None", "1 Star", "2 Stars and Up", "3 Stars and Up", "4 Stars and Up", "5 Stars"]
-    rating_dropdown = ttk.Combobox(search_frame, textvariable=rating_var, values=rating_options, state="readonly")
-    rating_dropdown.set("None")
-    rating_dropdown.pack(side=tk.LEFT, padx=5)
-
-    # Sorting
-    lbl_sort = ttk.Label(search_frame, text="Sort", font=("Inter", 10))
-    lbl_sort.pack(side=tk.LEFT, padx=5)
-
-    sort_var = tk.StringVar()
-    sort_options = ["None", "Name", "Average Rating"]
-    sort_dropdown = ttk.Combobox(search_frame, textvariable=sort_var, values=sort_options, state="readonly")
-    sort_dropdown.set("None")
-    sort_dropdown.pack(side=tk.LEFT, padx=5)
-
-    sortdir_var = tk.StringVar()
-    sortdir_options = ["Ascending", "Descending"]
-    sortdir_dropdown = ttk.Combobox(search_frame, textvariable=sortdir_var, values=sortdir_options, state="readonly")
-    sortdir_dropdown.set("Ascending")
-    sortdir_dropdown.pack(side=tk.LEFT, padx=5)
-
-    btn_search_sort = ttk.Button(search_frame, text="Search & Sort", command=search_sort_restaurants)
-    btn_search_sort.pack(side=tk.LEFT, padx=5)
     
     # Function to add restaurant
     def add_restaurant_review():
@@ -274,10 +248,6 @@ def init_main_window():
         # Adjust pop-up window dimensions
         popup.geometry("300x250")
         popup.mainloop()
-        
-    # Add restaurant review
-    btn_add_restaurant_review = ttk.Button(search_frame, text="Add Restaurant Review", command=add_restaurant_review)
-    btn_add_restaurant_review.pack(side=tk.RIGHT, padx=5)
     
     def edit_restaurant():
         if not selected_restaurant_id:
@@ -654,6 +624,10 @@ def init_main_window():
 
     btn_search_sort = ttk.Button(search_frame, text="Search & Sort", command=search_sort_restaurants)
     btn_search_sort.pack(side=tk.LEFT, padx=5)
+
+    # Add restaurant review
+    btn_add_restaurant_review = ttk.Button(search_frame, text="Add Restaurant Review", command=add_restaurant_review)
+    btn_add_restaurant_review.pack(side=tk.RIGHT, padx=5)
 
     # Add restaurant
     btn_add_restaurant = ttk.Button(search_frame, text="Add Restaurant", command=add_restaurant)
