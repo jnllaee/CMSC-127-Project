@@ -22,10 +22,17 @@ CREATE TABLE IF NOT EXISTS food_establishment(
     establishment_id INT(10) NOT NULL AUTO_INCREMENT,
     name VARCHAR (40) NOT NULL,
     contact_info VARCHAR(50) DEFAULT NULL,
-    average_rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+    average_rating INT(2) NOT NULL DEFAULT 0,
     website VARCHAR(50) DEFAULT NULL,
     location VARCHAR (100) NOT NULL,
     PRIMARY KEY(establishment_id)
+);
+
+-- FOOD_ITEM_TYPE(Food type id, Food type)
+CREATE TABLE IF NOT EXISTS food_item_type(
+    food_type_id INT(2) NOT NULL AUTO_INCREMENT,
+    food_type VARCHAR(50) NOT NULL,
+    PRIMARY KEY(food_type_id)
 );
 
 -- FOOD_ITEM(Item id, Name, Price, Average rating, Establishment id)
@@ -35,15 +42,10 @@ CREATE TABLE IF NOT EXISTS food_item(
     price INT(5) NOT NULL,
     average_rating INT(2) NOT NULL DEFAULT 0,
     establishment_id INT(10) NOT NULL,
+    food_type_id INT(2) NOT NULL,
     PRIMARY KEY(item_id),
-    FOREIGN KEY(establishment_id) REFERENCES food_establishment(establishment_id)
-);
-
--- FOOD_ITEM_TYPE(Item id, Food type)
-CREATE TABLE IF NOT EXISTS food_item_type(
-    item_id INT(10) NOT NULL,
-    food_type VARCHAR(50) NOT NULL,
-    FOREIGN KEY(item_id) REFERENCES food_item(item_id)
+    FOREIGN KEY(establishment_id) REFERENCES food_establishment(establishment_id),
+    FOREIGN KEY(food_type_id) REFERENCES food_item_type(food_type_id)
 );
 
 -- FOOD_REVIEWS(Item id, Customer id, Date, Content, Rating)
@@ -51,14 +53,12 @@ CREATE TABLE IF NOT EXISTS food_reviews(
     food_reviews_id INT(10) NOT NULL AUTO_INCREMENT,
     item_id INT(10) NOT NULL,
     customer_id INT(10) NOT NULL,
-    establishment_id INT(10) NOT NULL,
     date DATE NOT NULL,
     content VARCHAR(100) DEFAULT NULL,
     rating INT(2) NOT NULL DEFAULT 0,
     PRIMARY KEY(food_reviews_id),
     FOREIGN KEY(item_id) REFERENCES food_item(item_id),
-    FOREIGN KEY(customer_id) REFERENCES customer(customer_id),
-    FOREIGN KEY(establishment_id) REFERENCES food_establishment(establishment_id)
+    FOREIGN KEY(customer_id) REFERENCES customer(customer_id)
 );
 
 -- ESTABLISHMENT_REVIEWS(Item id, Customer id, Date, Content, Rating)
@@ -74,53 +74,47 @@ CREATE TABLE IF NOT EXISTS establishment_reviews(
     FOREIGN KEY(customer_id) REFERENCES customer(customer_id)
 );
 
--- Insertion of dummy data
+-- Insert dummy data into CUSTOMER table
+INSERT INTO customer (username, name) VALUES
+('john_doe', 'John Doe'),
+('jane_smith', 'Jane Smith'),
+('alice_wonder', 'Alice Wonderland'),
+('bob_builder', 'Bob Builder');
 
-INSERT INTO customer (customer_id, username, name) VALUES
-(1, 'april_may', 'April May'),
-(2, 'june_july', 'June July'),
-(3, 'aug_sept', 'Aug Sept');
+-- Insert dummy data into FOOD_ESTABLISHMENT table
+INSERT INTO food_establishment (name, contact_info, average_rating, website, location) VALUES
+('The Food Place', '123-456-7890', 4, 'www.thefoodplace.com', '123 Main St'),
+('Burger Haven', '234-567-8901', 5, 'www.burgerhaven.com', '456 Elm St'),
+('Pizza Paradise', '345-678-9012', 3, 'www.pizzaparadise.com', '789 Oak St'),
+('Taco Town', '456-789-0123', 4, 'www.tacotown.com', '101 Pine St');
 
-INSERT INTO food_establishment (establishment_id, name, contact_info, website, location) VALUES
-(1, 'Burger Place', '0912-345-6789', 'www.burgerplace.com', '123 That Burger Place'),
-(2, 'Sushi Place', '0998-765-4321', 'www.sushiplace.com', '456 Sushi Place Building'),
-(3, 'Dumplings Place', '0956-789-1234', 'www.dumplingsplace.com', '789 Dumplings St., Place');
+-- Insert dummy data into FOOD_ITEM_TYPE table
+INSERT INTO food_item_type (food_type) VALUES
+('Burger'),
+('Pizza'),
+('Taco'),
+('Pasta');
 
-INSERT INTO food_item (item_id, name, price, average_rating, establishment_id) VALUES
-(1, 'Cheeseburger', 75, 3, 1),
-(2, 'California Maki', 105, 4, 2),
-(3, 'Xiaolongbao', 70, 5, 3),
-(4, 'Yumburger', 225, 5, 1),
-(5, 'Torched Salmon Roll', 155, 4, 2),
-(6, 'Gyoza', 170, 3, 3);
+-- Insert dummy data into FOOD_ITEM table
+INSERT INTO food_item (name, price, average_rating, establishment_id, food_type_id) VALUES
+('Classic Burger', 10, 5, 2, 1),
+('Cheese Pizza', 12, 4, 3, 2),
+('Beef Taco', 8, 4, 4, 3),
+('Spaghetti Carbonara', 15, 5, 1, 4);
 
-INSERT INTO food_item_type (item_id, food_type) VALUES
-(1, 'Burgers'),
-(2, 'Sushi'),
-(3, 'Dumplings'),
-(4, 'Meat'),
-(5, 'Fish'),
-(6, 'Vegetable');
+-- Insert dummy data into FOOD_REVIEWS table
+INSERT INTO food_reviews (item_id, customer_id, date, content, rating) VALUES
+(1, 1, '2023-05-01', 'Amazing burger, will come again!', 5),
+(2, 2, '2023-05-02', 'Great pizza but a bit too salty.', 3),
+(3, 3, '2023-05-03', 'Tacos are delicious!', 4),
+(4, 4, '2023-05-04', 'Best pasta I ever had.', 5);
 
-INSERT INTO food_reviews (food_reviews_id, item_id, customer_id, establishment_id, date, content, rating) VALUES
-(1, 1, 1, 1, '2023-01-06', 'yummy burger!', 3),
-(2, 2, 2, 2, '2024-02-05', 'great sushi', 4),
-(3, 3, 3, 3, '2023-03-04', 'the best xiaolongbao', 5),
-(4, 4, 1, 1, '2022-04-03', 'best burger in town', 5),
-(5, 5, 2, 2, '2024-05-02', 'delicious sushi', 3),
-(6, 6, 3, 3, '2022-06-01', 'nice gyoza', 3);
-
-INSERT INTO establishment_reviews (establishment_reviews_id, establishment_id, customer_id, date, content, rating) VALUES
-(1, 1, 1, '2022-01-04', 'best resto', 5),
-(2, 2, 2, '2023-02-05', 'great ambience', 4),
-(3, 3, 3, '2024-03-06', 'classy yet comfy', 5);
-
-UPDATE food_establishment AS e
-SET e.average_rating = (
-        SELECT AVG(er.rating)
-        FROM establishment_reviews AS er
-        WHERE er.establishment_id = e.establishment_id
-);
+-- Insert dummy data into ESTABLISHMENT_REVIEWS table
+INSERT INTO establishment_reviews (establishment_id, customer_id, date, content, rating) VALUES
+(1, 1, '2023-05-01', 'Love the ambiance and food!', 5),
+(2, 2, '2023-05-02', 'Best burger place in town.', 5),
+(3, 3, '2023-05-03', 'Good pizza but slow service.', 3),
+(4, 4, '2023-05-04', 'Taco Town never disappoints.', 4);
 
 -- Features
 

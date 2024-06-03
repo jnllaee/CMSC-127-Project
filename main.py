@@ -355,12 +355,26 @@ def init_main_window():
                 conn = connect_db()
                 if conn:
                     cursor = conn.cursor()
+
+                    # Delete food reviews of all food items of the restaurant
+                    cursor.execute("SELECT item_id FROM food_item WHERE establishment_id=?", (selected_restaurant_id,))
+                    food_items = cursor.fetchall()
+                    for food_item in food_items:
+                        cursor.execute("DELETE FROM food_reviews WHERE item_id=?", (food_item[0],))
+
+                    # Delete food items of the restaurant
+                    cursor.execute("DELETE FROM food_item WHERE establishment_id=?", (selected_restaurant_id,))
+                    
+                    # Delete restaurant reviews
+                    cursor.execute("DELETE FROM establishment_reviews WHERE establishment_id=?", (selected_restaurant_id,))
+                    
+                    # Delete the restaurant
                     cursor.execute("DELETE FROM food_establishment WHERE establishment_id=?", (selected_restaurant_id,))
+                    
                     conn.commit()
                     conn.close()
                     messagebox.showinfo("Success", "Restaurant deleted successfully")
                     popup.destroy()
-                    #UPDATE TABLE
                     restaurants = fetch_restaurants()
                     update_table(restaurants)
         # Fetch current restaurant details
@@ -370,7 +384,6 @@ def init_main_window():
             cursor.execute("SELECT name, contact_info, website, location FROM food_establishment WHERE establishment_id=?", (selected_restaurant_id,))
             restaurant = cursor.fetchone()
             conn.close()
-
         if not restaurant:
             messagebox.showerror("Error", "Restaurant not found")
             return
@@ -496,7 +509,7 @@ def init_main_window():
                     messagebox.showinfo("Warning", "Food item already existing in restaurant")
                     conn.close()
                     return
-
+                
                 # If food item type doesn't exist, add it to the database
                 if food_item_type not in food_item_types:
                     cursor.execute("INSERT INTO food_item_type(food_type) VALUES (?)", (food_item_type,))
@@ -509,6 +522,7 @@ def init_main_window():
                 # Insert the food item into the database
                 cursor.execute("INSERT INTO food_item(name, price, establishment_id, food_type_id) VALUES (?, ?, ?, ?)",
                             (food_item_name, food_item_price, selected_restaurant_id, food_type_id))
+            
                 conn.commit()
                 conn.close()
 
