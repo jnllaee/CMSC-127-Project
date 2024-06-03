@@ -264,23 +264,16 @@ def init_main_window():
                 messagebox.showerror("Error", "Please enter both fields correctly")
                 return
             
-            print("TREE", tree.selection())
             establishment_id = tree.item(tree.selection()[0], "values")[0]       
             conn = connect_db()
             if conn:
                 cursor = conn.cursor()
                 cursor.execute("INSERT INTO establishment_reviews (establishment_id, customer_id, content, rating, date) VALUES (?, ?, ?, ?, CURDATE())",
                 (establishment_id, customer_id, content, rating))
-                cursor.execute("SELECT rating FROM establishment_reviews WHERE establishment_id=?", 
+                cursor.execute("SELECT AVG(rating) FROM establishment_reviews WHERE establishment_id=?", 
                                (establishment_id,))
-                all_ratings = cursor.fetchall()
-                print("All ratings:", all_ratings)
-                
-                total_ratings = sum(float(r[0]) for r in all_ratings)
-                average_rating = total_ratings / len(all_ratings)
-                
-                print("Total ratings:", total_ratings)
-                print("Average rating:", average_rating)
+                average_rating = cursor.fetchone()[0]
+                print(average_rating)
                 
                 cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
                                (average_rating, establishment_id))
@@ -660,18 +653,14 @@ def init_main_window():
                 cursor.execute("UPDATE establishment_reviews SET content=?, rating=? WHERE establishment_reviews_id=? AND establishment_id=?",
                             (review_content, review_rating, selected_establishment_review_id, selected_restaurant_id))
                 cursor.execute("SELECT rating FROM establishment_reviews WHERE establishment_id=?", 
-                               (establishment_id,))
+                               (selected_restaurant_id,))
                 all_ratings = cursor.fetchall()
-                print("All ratings:", all_ratings)
                 
                 total_ratings = sum(float(r[0]) for r in all_ratings)
                 average_rating = total_ratings / len(all_ratings)
                 
-                print("Total ratings:", total_ratings)
-                print("Average rating:", average_rating)
-                
                 cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
-                               (average_rating, establishment_id))
+                               (average_rating, selected_restaurant_id))
                 conn.commit()
                 conn.close()
                 messagebox.showinfo("Success", "Establishment review updated successfully")
@@ -692,13 +681,9 @@ def init_main_window():
                     cursor.execute("SELECT rating FROM establishment_reviews WHERE establishment_id=?", 
                                (selected_restaurant_id,))
                     all_ratings = cursor.fetchall()
-                    print("All ratings:", all_ratings)
                     
                     total_ratings = sum(float(r[0]) for r in all_ratings)
                     average_rating = total_ratings / len(all_ratings)
-                    
-                    print("Total ratings:", total_ratings)
-                    print("Average rating:", average_rating)
                     
                     cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
                                 (average_rating, selected_restaurant_id))
@@ -722,8 +707,6 @@ def init_main_window():
                 cursor = conn.cursor()
                 cursor.execute("SELECT establishment_reviews_id, content, rating FROM establishment_reviews WHERE establishment_reviews_id=? AND establishment_id=?",
                             (selected_establishment_review_id, selected_restaurant_id))
-                print("seid ", selected_establishment_review_id)
-                print("rid ", selected_restaurant_id)
                 establishment_review = cursor.fetchone()
                 conn.close()
 
@@ -739,7 +722,6 @@ def init_main_window():
             ttk.Label(review_popup, text="Review Content:").grid(row=0, column=0, padx=5, pady=5)
             entry_review_content = ttk.Entry(review_popup)
             entry_review_content.grid(row=0, column=1, padx=5, pady=5)
-            print("estreview", establishment_review)
             entry_review_content.insert(0, establishment_review[1])
 
             ttk.Label(review_popup, text="Review Rating:").grid(row=1, column=0, padx=5, pady=5)
