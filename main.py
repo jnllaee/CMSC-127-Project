@@ -166,7 +166,7 @@ def init_main_window():
                     cursor.execute("INSERT INTO customer (username, name) VALUES (?, ?)",
                                 (username, name))
                     conn.commit()
-                    customer_id = cursor.lastrowid()
+                    customer_id = cursor.lastrowid
                     messagebox.showinfo("Success", "Customer added successfully")
                     conn.close()
                     customer_popup.destroy()
@@ -426,8 +426,6 @@ def init_main_window():
         popup.geometry("")
         popup.mainloop()
 
-
-################################ FOOD ################################
     def search_sort_food_items():
         query = entry_food_item_search.get().lower()
         food_type_filter = food_type_var.get()
@@ -599,6 +597,7 @@ def init_main_window():
                 conn = connect_db()
                 if conn:
                     cursor = conn.cursor()
+                    cursor.execute("DELETE FROM food_reviews WHERE item_id=?", (selected_food_item_id,))
                     cursor.execute("DELETE FROM food_item WHERE item_id=?", (selected_food_item_id,))
                     conn.commit()
                     conn.close()
@@ -791,6 +790,10 @@ def init_main_window():
     style.configure("TNotebook.Tab", font=("Inter", 10, "bold"))
     style.configure("Treeview.Heading", font=("Inter", 10, "bold"))
 
+    # Title for restaurants table
+    lbl_food_items = ttk.Label(root, text="Restaurants", font=("Inter", 14, "bold"), background="#FFF2DC")
+    lbl_food_items.pack(side=tk.TOP, padx=5, pady=5)
+
     # Search bar
     search_frame = ttk.Frame(root)
     search_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
@@ -844,7 +847,7 @@ def init_main_window():
     tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
     
 
-        # Title for food items table
+    # Title for food items table
     lbl_food_items = ttk.Label(root, text="Food Items", font=("Inter", 14, "bold"), background="#FFF2DC")
     lbl_food_items.pack(side=tk.TOP, padx=5, pady=5)
     
