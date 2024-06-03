@@ -273,7 +273,6 @@ def init_main_window():
                 cursor.execute("SELECT AVG(rating) FROM establishment_reviews WHERE establishment_id=?", 
                                (establishment_id,))
                 average_rating = cursor.fetchone()[0]
-                print(average_rating)
                 
                 cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
                                (average_rating, establishment_id))
@@ -559,18 +558,9 @@ def init_main_window():
                     conn.close()
                     return
 
-                # Check if the food item already exists in the restaurant
-                cursor.execute("SELECT name FROM food_item WHERE establishment_id=?", (selected_restaurant_id,))
-                all_food_items = cursor.fetchall()
-                existing_food_items = [item[0] for item in all_food_items]
-                if food_item_name in existing_food_items:
-                    messagebox.showinfo("Warning", "Food item already existing in restaurant")
-                    conn.close()
-
                 # If food item type doesn't exist, add it to the database
                 if food_item_type not in food_item_types:
                     cursor.execute("INSERT INTO food_item_type(food_type) VALUES (?)", (food_item_type,))
-                    conn.commit()
 
                 # Get the food type id
                 cursor.execute("SELECT food_type_id FROM food_item_type WHERE food_type=?", (food_item_type,))
@@ -579,6 +569,7 @@ def init_main_window():
                 # Insert the food item into the database
                 cursor.execute("UPDATE food_item SET name=?, price=?, food_type_id=? WHERE item_id=?",
                             (food_item_name, food_item_price, food_type_id, selected_food_item_id))
+                
                 conn.commit()
                 conn.close()
                 messagebox.showinfo("Success", "Food item updated successfully")
@@ -652,12 +643,9 @@ def init_main_window():
                 cursor = conn.cursor()
                 cursor.execute("UPDATE establishment_reviews SET content=?, rating=? WHERE establishment_reviews_id=? AND establishment_id=?",
                             (review_content, review_rating, selected_establishment_review_id, selected_restaurant_id))
-                cursor.execute("SELECT rating FROM establishment_reviews WHERE establishment_id=?", 
+                cursor.execute("SELECT AVG(rating) FROM establishment_reviews WHERE establishment_id=?", 
                                (selected_restaurant_id,))
-                all_ratings = cursor.fetchall()
-                
-                total_ratings = sum(float(r[0]) for r in all_ratings)
-                average_rating = total_ratings / len(all_ratings)
+                average_rating = cursor.fetchone()[0]
                 
                 cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
                                (average_rating, selected_restaurant_id))
@@ -678,12 +666,9 @@ def init_main_window():
                 if conn:
                     cursor = conn.cursor()
                     cursor.execute("DELETE FROM establishment_reviews WHERE establishment_reviews_id=?", (selected_establishment_review_id,))
-                    cursor.execute("SELECT rating FROM establishment_reviews WHERE establishment_id=?", 
+                    cursor.execute("SELECT AVG(rating) FROM establishment_reviews WHERE establishment_id=?", 
                                (selected_restaurant_id,))
-                    all_ratings = cursor.fetchall()
-                    
-                    total_ratings = sum(float(r[0]) for r in all_ratings)
-                    average_rating = total_ratings / len(all_ratings)
+                    average_rating = cursor.fetchone()[0]
                     
                     cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
                                 (average_rating, selected_restaurant_id))
@@ -932,12 +917,6 @@ def init_main_window():
             restaurant_reviews_tree.delete(row)
         for row in rows:
             restaurant_reviews_tree.insert("", tk.END, values=row)
-
-
-
-    #########
-
-
 
     # Function to display all food items in a new window
     def show_all_food_items():
