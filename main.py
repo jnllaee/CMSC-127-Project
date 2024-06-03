@@ -27,26 +27,7 @@ def fetch_restaurants():
         return rows
     return []
 
-# Fetch all food items from the database
-def fetch_all_food_items():
-    conn = connect_db()
-    if conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT fi.item_id, fi.name, fi.price, fit.food_type, fe.name, fi.average_rating
-            FROM food_item fi
-            NATURAL JOIN food_item_type fit
-            JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id
-            WHERE fi.establishment_id = ?
-            """, 
-            (establishment_id,)
-        )
 
-        rows = cursor.fetchall()
-        conn.close()
-        return rows
-    return []
 
 # Fetch all food items of the selected item (based on the restaurant selected) from the database
 def fetch_food_items(establishment_id):
@@ -55,7 +36,7 @@ def fetch_food_items(establishment_id):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT fe.name, fi.item_id, fi.name, fi.price, fit.food_type, fi.average_rating
+            SELECT fi.item_id, fe.name, fi.name, fi.price, fit.food_type, fi.average_rating
             FROM food_item fi
             NATURAL JOIN food_item_type fit
             JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id
@@ -79,7 +60,7 @@ def fetch_food_item_types():
         return food_type_options
     return []
 
-# Fetch all restaurants from the database
+# Fetch all restaurant reviews from the database
 def fetch_restaurant_reviews(establishment_id):
     conn = connect_db()
     if conn:
@@ -99,45 +80,6 @@ def fetch_restaurant_reviews(establishment_id):
 
 # Initialize main window
 def init_main_window():
-    root = tk.Tk()
-    root.title("GrubHub")
-    root.iconbitmap("src/Icon.ico")
-    root.geometry("1980x1020")
-    root.configure(background="#FFF2DC")
-
-    # Apply styles
-    style = ttk.Style()
-    style.configure("TFrame", background="#FFF2DC")
-    style.configure("TLabel", font=("Inter", 10), background="#FFF2DC")
-    style.configure("TButton", font=("Inter", 10))
-    style.configure("TEntry", font=("Inter", 10))
-    style.configure("TNotebook", font=("Inter", 10))
-    style.configure("TNotebook.Tab", font=("Inter", 10, "bold"))
-    style.configure("Treeview.Heading", font=("Inter", 10, "bold"))
-
-    # Header
-    header_frame = ttk.Frame(root)
-    header_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
-    icon = tk.PhotoImage(file="src/Icon.png")
-    icon_scaled = icon.subsample(3,3)
-    lbl_header = ttk.Label(header_frame, image=icon_scaled, justify="center")
-    lbl_header.pack(side=tk.LEFT, padx=5)
-    lbl_header2 = ttk.Label(header_frame, text="GrubHub", justify="center", font=("Inter", 14, "bold"))
-    lbl_header2.pack(side=tk.LEFT, padx=5)
-
-    lbl_Restaurant = ttk.Label(root, text="Restaurants", font=("Inter", 14, "bold"), background="#FFF2DC")
-    lbl_Restaurant.pack(side=tk.TOP, padx=5, pady=5)
-
-    # Search bar
-    search_frame = ttk.Frame(root)
-    search_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
-    
-    lbl_search = ttk.Label(search_frame, text="Search", font=("Inter", 10))
-    lbl_search.pack(side=tk.LEFT, padx=5)
-    
-    entry_search = ttk.Entry(search_frame, width=30)
-    entry_search.pack(side=tk.LEFT, padx=5)
-    
     # Function to search and sort restaurants
     def search_sort_restaurants():
         query = entry_search.get().lower()
@@ -198,7 +140,7 @@ def init_main_window():
             
             update_table(rows)
     
-    # Function to add restaurant review
+    # Function to add restaurant
     def add_restaurant_review():
         # Function to handle submission of restaurant details
         def submit_customer_restaurant():
@@ -393,7 +335,10 @@ def init_main_window():
                 conn.close()
                 messagebox.showinfo("Success", "Restaurant updated successfully")
                 popup.destroy()
-        
+
+                #UPDATE TABLE
+                restaurants = fetch_restaurants()
+                update_table(restaurants)
         # Function to handle deletion of restaurant
         def delete_restaurant():
             response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this restaurant?")
@@ -406,6 +351,9 @@ def init_main_window():
                     conn.close()
                     messagebox.showinfo("Success", "Restaurant deleted successfully")
                     popup.destroy()
+                    #UPDATE TABLE
+                    restaurants = fetch_restaurants()
+                    update_table(restaurants)
 
         # Fetch current restaurant details
         conn = connect_db()
@@ -457,6 +405,8 @@ def init_main_window():
         popup.geometry("")
         popup.mainloop()
 
+
+################################ FOOD ################################
     def search_sort_food_items():
         query = entry_food_item_search.get().lower()
         food_type_filter = food_type_var.get()
@@ -469,7 +419,12 @@ def init_main_window():
         if conn:
             cursor = conn.cursor()
             
-            base_query = "SELECT fi.item_id, fi.name, fi.price, fit.food_type FROM food_item fi NATURAL JOIN food_item_type fit"
+            base_query = """
+                SELECT fi.item_id, fe.name, fi.name, fi.price, fit.food_type, fi.average_rating
+                FROM food_item fi
+                NATURAL JOIN food_item_type fit
+                JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id
+            """            
             query_params = []
             conditions = []
 
@@ -749,7 +704,7 @@ def init_main_window():
     # Add restaurant
     btn_add_restaurant = ttk.Button(search_frame, text="Add Restaurant", command=add_restaurant)
     btn_add_restaurant.pack(side=tk.RIGHT, padx=5)
-
+    
     # Table for displaying restaurants
     columns = ("ID", "Name", "Contact Info", "Average Rating", "Website", "Location")
     tree = ttk.Treeview(root, columns=columns, show="headings", height=10)
@@ -757,6 +712,11 @@ def init_main_window():
         tree.heading(col, text=col)
         tree.column(col, anchor="center", width=50)
     tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
+    
+
+        # Title for food items table
+    lbl_food_items = ttk.Label(root, text="Food Items", font=("Inter", 14, "bold"), background="#FFF2DC")
+    lbl_food_items.pack(side=tk.TOP, padx=5, pady=5)
     
     food_item_frame = ttk.Frame(root)
     food_item_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
@@ -810,42 +770,26 @@ def init_main_window():
     btn_search_sort = ttk.Button(food_item_frame, text="Search & Sort", command=search_sort_food_items)
     btn_search_sort.pack(side=tk.LEFT, padx=5)
     
-    # Title for food items table
-    lbl_food_items = ttk.Label(root, text="Food Items", font=("Inter", 14, "bold"), background="#FFF2DC")
-    lbl_food_items.pack(side=tk.TOP, padx=5, pady=5)
-    
-    # Table for displaying food items
 
-    food_items_columns = ("Restaurant Name", "Food ID", "Food", "Price", "Food Type")
+    # Table for displaying food items
+    food_items_columns = ("Food ID", "Restaurant Name", "Food Name", "Price", "Food Type", "Average Rating")
     food_items_tree = ttk.Treeview(root, columns=food_items_columns, show="headings", height=10)
     for col in food_items_columns:
         food_items_tree.heading(col, text=col)
         food_items_tree.column(col, anchor="center", width=50)
+
     food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
     
     lbl_Reviews = ttk.Label(root, text="Reviews", font=("Inter", 14, "bold"), background="#FFF2DC")
     lbl_Reviews.pack(side=tk.TOP, padx=5, pady=5)
 
     # Table for displaying restaurant reviews
-    restaurant_reviews_columns = ("Username", "Content", "Rating", "Date")
+    restaurant_reviews_columns = ("Username", "Content", "Rating")
     restaurant_reviews_tree = ttk.Treeview(root, columns=restaurant_reviews_columns, show="headings", height=10)
     for col in restaurant_reviews_columns:
         restaurant_reviews_tree.heading(col, text=col)
         restaurant_reviews_tree.column(col, anchor="center", width=50)
     restaurant_reviews_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
-    
-    def on_treeview_select(event):
-        # Get the selected item
-        item = tree.selection()[0]
-        
-        # Get the data from the selected item
-        data = tree.item(item, "values")
-        
-        # Fetch and display food items and reviews associated with selected restaurant
-        food_items = fetch_food_items(data[0])
-        update_food_items_table(food_items)
-        restaurant_reviews = fetch_restaurant_reviews(data[0])
-        update_restaurant_reviews_table(restaurant_reviews)
         
     tree.bind("<<TreeviewSelect>>", on_treeview_select)
     food_items_tree.bind("<<TreeviewSelect>>", edit_food_item)
@@ -856,7 +800,7 @@ def init_main_window():
             tree.delete(row)
         for row in rows:
             tree.insert("", tk.END, values=row)
-
+    
     # Update restaurant food items table
     def update_food_items_table(rows):
         for row in food_items_tree.get_children():
@@ -871,9 +815,15 @@ def init_main_window():
         for row in rows:
             restaurant_reviews_tree.insert("", tk.END, values=row)
 
+
+
+    #########
+
+
+
     # Function to display all food items in a new window
     def show_all_food_items():
-        all_food_items = fetch_all_food_items()
+        all_food_items = fetch_food_items()
         
         # Create pop-up window
         popup = tk.Toplevel(root)
@@ -881,7 +831,7 @@ def init_main_window():
         popup.configure(background="#FFF2DC")
         
         # Table for displaying all food items
-        all_food_items_columns = ("Restaurant Name", "Food Name", "Price", "Food Type", "Average Rating")
+        all_food_items_columns = ("Food ID", "Restaurant Name", "Food Name", "Price", "Food Type", "Average Rating")
         all_food_items_tree = ttk.Treeview(popup, columns=all_food_items_columns, show="headings", height=10)
         for col in all_food_items_columns:
             all_food_items_tree.heading(col, text=col)
