@@ -126,7 +126,7 @@ def init_main_window():
     # Function to add restaurant
     def add_restaurant_review():
         # Function to handle submission of restaurant details
-        def submit_restaurant_review():
+        def submit_customer_restaurant():
             # Get values from entry fields
             username = entry_username.get().strip()
             name = entry_name.get().strip()
@@ -146,31 +146,26 @@ def init_main_window():
                 cursor = conn.cursor()
                 cursor.execute("SELECT customer_id, name FROM customer WHERE username = ?",
                 (username,))
-                existing_customer = cursor.fetchone()
-                conn.close()
-                
+                existing_customer = cursor.fetchone()               
                 if existing_customer:
                     if existing_customer[1] == name:
                         customer_id = existing_customer[0]
                         messagebox.showinfo("Success", "Customer found. Welcome back!")
-                        customer_popup.destroy()
                         conn.close()
-                        
+                        customer_popup.destroy()
+                        open_review_popup(customer_id)
                     else:
                         messagebox.showerror("Error", "Username already in use!")
                         return
-            else:
-                # Insert customer into the database
-                conn = connect_db()
-                if conn:
-                    cursor = conn.cursor()
+                else:
                     cursor.execute("INSERT INTO customer (username, name) VALUES (?, ?)",
-                    (username, name))
+                                (username, name))
                     conn.commit()
                     customer_id = cursor.lastrowid()
                     conn.close()
                     messagebox.showinfo("Success", "Customer added successfully")
                     customer_popup.destroy()
+                    open_review_popup(customer_id)
                 
         # Create pop-up window
         customer_popup = tk.Toplevel(root)
@@ -187,7 +182,7 @@ def init_main_window():
         entry_name.grid(row=1, column=1, padx=5, pady=5)
 
         # Add submit button
-        btn_submit = ttk.Button(customer_popup, text="Submit", command=submit_restaurant_review)
+        btn_submit = ttk.Button(customer_popup, text="Submit", command=submit_customer_restaurant)
         btn_submit.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
 
         # Adjust pop-up window dimensions
@@ -248,6 +243,53 @@ def init_main_window():
         # Adjust pop-up window dimensions
         popup.geometry("300x250")
         popup.mainloop()
+        
+    def open_review_popup(customer_id):
+        def submit_review():
+            # Get values from entry fields
+            content = entry_content.get().strip()
+            rating = entry_rating.get().strip()
+            
+            # Check if the username field is empty
+            if not content or not rating:
+                messagebox.showerror("Error", "Please enter both fields correctly")
+                return
+            
+            establishment_id = tree.item(tree.selection()[0], "values")[0]            
+            conn = connect_db()
+            if conn:
+                cursor = conn.cursor()
+                cursor.execute("INSERT INTO establishment_reviews (establishment_id, customer_id, content, rating, date) VALUES (?, ?, ?, ?, CURDATE())",
+                (establishment_id, customer_id, content, rating))
+                conn.commit()
+                conn.close()
+                messagebox.showinfo("Success", "Restaurant review added successfully")
+                review_popup.destroy()
+                
+                reviews = fetch_restaurant_reviews(establishment_id)
+                update_restaurant_reviews_table(reviews)
+                
+        # Create pop-up window
+        review_popup = tk.Toplevel(root)
+        review_popup.title("Add Review")
+        review_popup.configure(background="#FFF2DC")
+
+        # Design the UI
+        ttk.Label(review_popup, text="Content:").grid(row=0, column=0, padx=5, pady=5)
+        entry_content = ttk.Entry(review_popup)
+        entry_content.grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Label(review_popup, text="Rating:").grid(row=1, column=0, padx=5, pady=5)
+        entry_rating = ttk.Entry(review_popup)
+        entry_rating.grid(row=1, column=1, padx=5, pady=5)
+
+        # Add submit button
+        btn_submit = ttk.Button(review_popup, text="Submit", command=submit_review)
+        btn_submit.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
+
+        # Adjust pop-up window dimensions
+        review_popup.geometry("300x250")
+        review_popup.mainloop()
     
     def edit_restaurant():
         if not selected_restaurant_id:
