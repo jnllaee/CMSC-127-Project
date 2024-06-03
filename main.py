@@ -55,7 +55,7 @@ def fetch_restaurant_reviews(establishment_id):
     conn = connect_db()
     if conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT c.username, r.content, r.rating, r.date FROM customer c NATURAL JOIN establishment_reviews r WHERE r.establishment_id = ?", (establishment_id,))
+        cursor.execute("SELECT r.establishment_reviews_id, c.username, r.content, r.rating, r.date FROM customer c NATURAL JOIN establishment_reviews r WHERE r.establishment_id = ?", (establishment_id,))
         rows = cursor.fetchall()
         conn.close()
         return rows
@@ -241,6 +241,10 @@ def init_main_window():
         
     def open_review_popup(customer_id):
         def submit_review():
+            if not tree.selection():
+                messagebox.showerror("Error", "Please select a restaurant")
+                return
+            
             # Get values from entry fields
             content = entry_content.get().strip()
             rating = entry_rating.get().strip()
@@ -250,7 +254,8 @@ def init_main_window():
                 messagebox.showerror("Error", "Please enter both fields correctly")
                 return
             
-            establishment_id = tree.item(tree.selection()[0], "values")[0]            
+            print("TREE", tree.selection())
+            establishment_id = tree.item(tree.selection()[0], "values")[0]       
             conn = connect_db()
             if conn:
                 cursor = conn.cursor()
@@ -329,7 +334,7 @@ def init_main_window():
                 conn.close()
                 messagebox.showinfo("Success", "Restaurant updated successfully")
                 popup.destroy()
-        
+                    
         # Function to handle deletion of restaurant
         def delete_restaurant():
             response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this restaurant?")
@@ -342,6 +347,8 @@ def init_main_window():
                     conn.close()
                     messagebox.showinfo("Success", "Restaurant deleted successfully")
                     popup.destroy()
+        
+        
 
         # Fetch current restaurant details
         conn = connect_db()
@@ -609,6 +616,114 @@ def init_main_window():
         popup.geometry("")
         popup.mainloop()
         
+    def edit_restaurant_review(event):
+        def submit_review():
+            review_content = entry_review_content.get().strip()
+            review_rating = entry_review_rating.get().strip()
+
+            conn = connect_db()
+            if conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE establishment_reviews SET content=?, rating=? WHERE establishment_reviews_id=? AND establishment_id=?",
+                            (review_content, review_rating, selected_establishment_review_id, selected_restaurant_id))
+                cursor.execute("SELECT rating FROM establishment_reviews WHERE establishment_id=?", 
+                               (establishment_id,))
+                all_ratings = cursor.fetchall()
+                print("All ratings:", all_ratings)
+                
+                total_ratings = sum(float(r[0]) for r in all_ratings)
+                average_rating = total_ratings / len(all_ratings)
+                
+                print("Total ratings:", total_ratings)
+                print("Average rating:", average_rating)
+                
+                cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
+                               (average_rating, establishment_id))
+                conn.commit()
+                conn.close()
+                messagebox.showinfo("Success", "Establishment review updated successfully")
+                review_popup.destroy()
+                
+                restaurant_reviews = fetch_restaurant_reviews(selected_restaurant_id)
+                update_restaurant_reviews_table(restaurant_reviews)
+                restaurants = fetch_restaurants()
+                update_table(restaurants)
+                
+        def delete_establishment_review():
+            response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this establishment review?")
+            if response:
+                conn = connect_db()
+                if conn:
+                    cursor = conn.cursor()
+                    cursor.execute("DELETE FROM establishment_reviews WHERE establishment_reviews_id=?", (selected_establishment_review_id,))
+                    cursor.execute("SELECT rating FROM establishment_reviews WHERE establishment_id=?", 
+                               (selected_restaurant_id,))
+                    all_ratings = cursor.fetchall()
+                    print("All ratings:", all_ratings)
+                    
+                    total_ratings = sum(float(r[0]) for r in all_ratings)
+                    average_rating = total_ratings / len(all_ratings)
+                    
+                    print("Total ratings:", total_ratings)
+                    print("Average rating:", average_rating)
+                    
+                    cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
+                                (average_rating, selected_restaurant_id))
+                    conn.commit()
+                    conn.close()
+                    messagebox.showinfo("Success", "Establishment review successfully deleted")
+                    review_popup.destroy()
+                    
+                    restaurant_reviews = fetch_restaurant_reviews(selected_restaurant_id)
+                    update_restaurant_reviews_table(restaurant_reviews)
+                    restaurants = fetch_restaurants()
+                    update_table(restaurants)
+
+        establishment_review = restaurant_reviews_tree.selection()
+        if establishment_review:
+            selected_establishment_review_id = restaurant_reviews_tree.item(establishment_review, "values")[0]
+
+            # Fetch current establishment review details
+            conn = connect_db()
+            if conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT establishment_reviews_id, content, rating FROM establishment_reviews WHERE establishment_reviews_id=? AND establishment_id=?",
+                            (selected_establishment_review_id, selected_restaurant_id))
+                print("seid ", selected_establishment_review_id)
+                print("rid ", selected_restaurant_id)
+                establishment_review = cursor.fetchone()
+                conn.close()
+
+            if not selected_establishment_review_id:
+                messagebox.showerror("Error", "Establishment review not found")
+                return
+
+            # Create pop-up window
+            review_popup = tk.Toplevel(root)
+            review_popup.title("Establishment Reviews")
+            review_popup.configure(background="#FFF2DC")
+            
+            ttk.Label(review_popup, text="Review Content:").grid(row=0, column=0, padx=5, pady=5)
+            entry_review_content = ttk.Entry(review_popup)
+            entry_review_content.grid(row=0, column=1, padx=5, pady=5)
+            print("estreview", establishment_review)
+            entry_review_content.insert(0, establishment_review[1])
+
+            ttk.Label(review_popup, text="Review Rating:").grid(row=1, column=0, padx=5, pady=5)
+            entry_review_rating = ttk.Entry(review_popup)
+            entry_review_rating.grid(row=1, column=1, padx=5, pady=5)
+            entry_review_rating.insert(0, establishment_review[2])
+
+            btn_delete = ttk.Button(review_popup, text="Delete Establishment Review", command=delete_establishment_review)
+            btn_delete.grid(row=3, column=0, columnspan=2, padx=5, pady=10)
+
+            btn_edit = ttk.Button(review_popup, text="Submit", command=submit_review)
+            btn_edit.grid(row=4, column=0, columnspan=2, padx=5, pady=10)
+
+            # Adjust pop-up window dimensions
+            review_popup.geometry("")
+            review_popup.mainloop()
+        
     def on_treeview_select(event):
         item = tree.selection()[0]
         
@@ -755,7 +870,7 @@ def init_main_window():
     food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
     
     # Table for displaying restaurant reviews
-    restaurant_reviews_columns = ("Username", "Content", "Rating")
+    restaurant_reviews_columns = ("ID", "Username", "Content", "Rating", "Date")
     restaurant_reviews_tree = ttk.Treeview(root, columns=restaurant_reviews_columns, show="headings", height=10)
     for col in restaurant_reviews_columns:
         restaurant_reviews_tree.heading(col, text=col)
@@ -764,6 +879,9 @@ def init_main_window():
         
     tree.bind("<<TreeviewSelect>>", on_treeview_select)
     food_items_tree.bind("<<TreeviewSelect>>", edit_food_item)
+    
+    tree.bind("<<TreeviewSelect>>", on_treeview_select)
+    restaurant_reviews_tree.bind("<<TreeviewSelect>>", edit_restaurant_review)
 
     # Update restaurant details table
     def update_table(rows):
