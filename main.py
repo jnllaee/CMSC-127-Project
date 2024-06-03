@@ -132,13 +132,8 @@ def init_main_window():
             name = entry_name.get().strip()
             
             # Check if the username field is empty
-            if not username:
-                messagebox.showerror("Error", "Please enter the customer username")
-                return
-            
-            # Check if the name field is empty
-            if not name:
-                messagebox.showerror("Error", "Please enter the customer name")
+            if not username and not name:
+                messagebox.showerror("Error", "Please enter the customer username and name properly")
                 return
             
             conn = connect_db()
@@ -162,8 +157,8 @@ def init_main_window():
                                 (username, name))
                     conn.commit()
                     customer_id = cursor.lastrowid()
-                    conn.close()
                     messagebox.showinfo("Success", "Customer added successfully")
+                    conn.close()
                     customer_popup.destroy()
                     open_review_popup(customer_id)
                 
@@ -261,13 +256,29 @@ def init_main_window():
                 cursor = conn.cursor()
                 cursor.execute("INSERT INTO establishment_reviews (establishment_id, customer_id, content, rating, date) VALUES (?, ?, ?, ?, CURDATE())",
                 (establishment_id, customer_id, content, rating))
+                cursor.execute("SELECT rating FROM establishment_reviews WHERE establishment_id=?", 
+                               (establishment_id,))
+                all_ratings = cursor.fetchall()
+                print("All ratings:", all_ratings)
+                
+                total_ratings = sum(float(r[0]) for r in all_ratings)
+                average_rating = total_ratings / len(all_ratings)
+                
+                print("Total ratings:", total_ratings)
+                print("Average rating:", average_rating)
+                
+                cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
+                               (average_rating, establishment_id))
                 conn.commit()
-                conn.close()
                 messagebox.showinfo("Success", "Restaurant review added successfully")
+                conn.close()
+                # messagebox.showinfo("Success", "Restaurant review added successfully")
                 review_popup.destroy()
                 
                 reviews = fetch_restaurant_reviews(establishment_id)
                 update_restaurant_reviews_table(reviews)
+                restaurants = fetch_restaurants()
+                update_table(restaurants)
                 
         # Create pop-up window
         review_popup = tk.Toplevel(root)
