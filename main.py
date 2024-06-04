@@ -860,6 +860,21 @@ def init_main_window():
         popup.geometry("800x400")
         popup.mainloop()
     
+    # Function to add food item review
+    def add_food_item_review():
+        return
+    
+    # Function to edit food item review
+    def edit_food_item_review():
+        # Function for submit button
+        def submit_button():
+            return
+        
+        # Function to delete food item review
+        def delete_food_item_review():
+            return
+        return
+
     # Function to execute when a restaurant is selected
     def on_treeview_select(event):
         item = tree.selection()[0]
@@ -939,7 +954,7 @@ def init_main_window():
     
     # Table for displaying restaurants
     columns = ("ID", "Name", "Contact Info", "Average Rating", "Website", "Location")
-    tree = ttk.Treeview(root, columns=columns, show="headings", height=5)
+    tree = ttk.Treeview(root, columns=columns, show="headings", height=10)
     for col in columns:
         tree.heading(col, text=col)
         tree.column(col, anchor="center", width=50)
@@ -1016,65 +1031,140 @@ def init_main_window():
 
     # ===== FOOD ITEM TABLE END =====
 
-    # ===== RESTAURANT REVIEW START =====
-    
-    lbl_Reviews = ttk.Label(root, text="Reviews", font=("Inter", 14, "bold"), background="#FFF2DC")
-    lbl_Reviews.pack(side=tk.TOP, padx=5, pady=5)
+    # Create a Notebook (tabbed interface)
+    notebook = ttk.Notebook(root)
+    notebook.pack(fill=tk.BOTH, expand=True)
 
-    reviews_frame = ttk.Frame(root)
-    reviews_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
+    # Create frames for each tab
+    restaurant_frame = ttk.Frame(notebook)
+    food_frame = ttk.Frame(notebook)
 
-    lbl_reviews_search = ttk.Label(reviews_frame, text="Search", font=("Inter", 10))
+    # Add the frames to the Notebook with corresponding tab names
+    notebook.add(restaurant_frame, text="Restaurant Reviews")
+    notebook.add(food_frame, text="Food Item Reviews")
+
+    # ===== RESTAURANT REVIEW SECTION =====
+
+    # Create a top frame for search and sort fields
+    top_frame = ttk.Frame(restaurant_frame)
+    top_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
+
+    lbl_reviews_search = ttk.Label(top_frame, text="Search", font=("Inter", 10))
     lbl_reviews_search.pack(side=tk.LEFT, padx=5)
-    
-    reviews_search = ttk.Entry(reviews_frame, width=30)
+
+    reviews_search = ttk.Entry(top_frame, width=30)
     reviews_search.pack(side=tk.LEFT, padx=5)
 
     review_month_options = ["None", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-
     review_month_var = tk.StringVar()
-    review_month_dropdown = ttk.Combobox(reviews_frame, textvariable=review_month_var, values=review_month_options, state="readonly")
+    review_month_dropdown = ttk.Combobox(top_frame, textvariable=review_month_var, values=review_month_options, state="readonly")
     review_month_dropdown.set("None")
     review_month_dropdown.pack(side=tk.LEFT, padx=5)
 
     conn = connect_db()
+    curyear = 2024
     if conn:
         cursor = conn.cursor()
         cursor.execute("SELECT YEAR(CURDATE())")
-        curyear = cursor.fetchone()[0]
-    reviews_year = ttk.Entry(reviews_frame, width=30)
+        year_row = cursor.fetchone()
+        if year_row:
+            curyear = year_row[0]
+
+    reviews_year = ttk.Entry(top_frame, width=10)
     reviews_year.pack(side=tk.LEFT, padx=5)
     reviews_year.insert(0, curyear)
 
-    lbl_sort_reviews = ttk.Label(reviews_frame, text="Sort", font=("Inter", 10))
+    lbl_sort_reviews = ttk.Label(top_frame, text="Sort", font=("Inter", 10))
     lbl_sort_reviews.pack(side=tk.LEFT, padx=5)
 
     sort_reviews_var = tk.StringVar()
     sort_reviews_options = ["None", "Username", "Rating"]
-    sort_reviews_dropdown = ttk.Combobox(reviews_frame, textvariable=sort_reviews_var, values=sort_reviews_options, state="readonly")
+    sort_reviews_dropdown = ttk.Combobox(top_frame, textvariable=sort_reviews_var, values=sort_reviews_options, state="readonly")
     sort_reviews_dropdown.set("None")
     sort_reviews_dropdown.pack(side=tk.LEFT, padx=5)
 
     sortdir_reviews_var = tk.StringVar()
     sortdir_reviews_options = ["Ascending", "Descending"]
-    sortdir_reviews_dropdown = ttk.Combobox(reviews_frame, textvariable=sortdir_reviews_var, values=sortdir_reviews_options, state="readonly")
+    sortdir_reviews_dropdown = ttk.Combobox(top_frame, textvariable=sortdir_reviews_var, values=sortdir_reviews_options, state="readonly")
     sortdir_reviews_dropdown.set("Ascending")
     sortdir_reviews_dropdown.pack(side=tk.LEFT, padx=5)
 
-    btn_search_sort = ttk.Button(reviews_frame, text="Search & Sort", command=search_sort_estreviews)
+    btn_search_sort = ttk.Button(top_frame, text="Search & Sort", command=search_sort_estreviews)
     btn_search_sort.pack(side=tk.LEFT, padx=5)
 
-    btn_add_restaurant_review = ttk.Button(reviews_frame, text="Add Restaurant Review", command=add_restaurant_review)
+    btn_add_restaurant_review = ttk.Button(top_frame, text="Add Restaurant Review", command=add_restaurant_review)
     btn_add_restaurant_review.pack(side=tk.RIGHT, padx=5)
 
+    table_frame = ttk.Frame(restaurant_frame)
+    table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
     restaurant_reviews_columns = ("ID", "Username", "Content", "Rating", "Date")
-    restaurant_reviews_tree = ttk.Treeview(root, columns=restaurant_reviews_columns, show="headings", height=5)
+    restaurant_reviews_tree = ttk.Treeview(table_frame, columns=restaurant_reviews_columns, show="headings", height=5)
     for col in restaurant_reviews_columns:
         restaurant_reviews_tree.heading(col, text=col)
         restaurant_reviews_tree.column(col, anchor="center", width=50)
-    restaurant_reviews_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
+    restaurant_reviews_tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-    # ===== RESTAURANT REVIEW END =====
+    # ===== FOOD ITEM REVIEW SECTION =====
+
+    top1_frame = ttk.Frame(food_frame)
+    top1_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
+
+    lbl_freviews_search = ttk.Label(top1_frame, text="Search", font=("Inter", 10))
+    lbl_freviews_search.pack(side=tk.LEFT, padx=5)
+
+    freviews_search = ttk.Entry(top1_frame, width=30)
+    freviews_search.pack(side=tk.LEFT, padx=5)
+
+    freview_month_var = tk.StringVar()
+    freview_month_dropdown = ttk.Combobox(top1_frame, textvariable=freview_month_var, values=review_month_options, state="readonly")
+    freview_month_dropdown.set("None")
+    freview_month_dropdown.pack(side=tk.LEFT, padx=5)
+
+    conn = connect_db()
+    curyear1 = 2024
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT YEAR(CURDATE())")
+        year_row1 = cursor.fetchone()
+        if year_row:
+            curyear1 = year_row1[0]
+
+    freviews_year = ttk.Entry(top1_frame, width=10)
+    freviews_year.pack(side=tk.LEFT, padx=5)
+    freviews_year.insert(0, curyear1)
+
+    lbl_sort_freviews = ttk.Label(top1_frame, text="Sort", font=("Inter", 10))
+    lbl_sort_freviews.pack(side=tk.LEFT, padx=5)
+
+    sort_freviews_var = tk.StringVar()
+    sort_freviews_dropdown = ttk.Combobox(top1_frame, textvariable=sort_freviews_var, values=sort_reviews_options, state="readonly")
+    sort_freviews_dropdown.set("None")
+    sort_freviews_dropdown.pack(side=tk.LEFT, padx=5)
+
+    sortdir_freviews_var = tk.StringVar()
+    sortdir_freviews_dropdown = ttk.Combobox(top1_frame, textvariable=sortdir_freviews_var, values=sortdir_reviews_options, state="readonly")
+    sortdir_freviews_dropdown.set("Ascending")
+    sortdir_freviews_dropdown.pack(side=tk.LEFT, padx=5)
+
+    btn_fsearch_sort = ttk.Button(top1_frame, text="Search & Sort")
+    btn_fsearch_sort.pack(side=tk.LEFT, padx=5)
+
+    btn_add_food_review = ttk.Button(top1_frame, text="Add Food Item Review")
+    btn_add_food_review.pack(side=tk.RIGHT, padx=5)
+
+    table1_frame = ttk.Frame(food_frame)
+    table1_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+    food_reviews_columns = ("Food ID", "Food Item Name", "Username", "Content", "Rating", "Date")
+    food_reviews_tree = ttk.Treeview(table1_frame, columns=food_reviews_columns, show="headings", height=10)
+    for col in food_reviews_columns:
+        food_reviews_tree.heading(col, text=col)
+        food_reviews_tree.column(col, anchor="center", width=50)
+    food_reviews_tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+    tree.bind("<<TreeviewSelect>>", on_treeview_select)
+    food_items_tree.bind("<<TreeviewSelect>>", edit_food_item)
         
     tree.bind("<<TreeviewSelect>>", on_treeview_select)
     food_items_tree.bind("<<TreeviewSelect>>", edit_food_item)
@@ -1110,39 +1200,9 @@ def init_main_window():
         for row in rows:
             food_reviews_tree.insert("", tk.END, values=row)
 
-##############/////
-    # Label for Food Reviews
-    lbl_food_reviews = ttk.Label(root, text="Food Reviews", font=("Inter", 14, "bold"), background="#FFF2DC")
-    lbl_food_reviews.pack(side=tk.TOP, padx=5, pady=5)
-
-    # Table for displaying food reviews
-    food_reviews_columns = ("ID", "Food Item", "Username", "Content", "Rating", "Date")
-    food_reviews_tree = ttk.Treeview(root, columns=food_reviews_columns, show="headings", height=10)
-    for col in food_reviews_columns:
-        food_reviews_tree.heading(col, text=col)
-        food_reviews_tree.column(col, anchor="center", width=50)
-    food_reviews_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
-
-    tree.bind("<<TreeviewSelect>>", on_treeview_select)
-    food_items_tree.bind("<<TreeviewSelect>>", edit_food_item)
-
-
-
-    
-
-    #################
-
-
-
-    
     # Load initial data
     restaurants = fetch_restaurants()
     update_table(restaurants)
-
-
-    #################### for food reviews view
-
-
 
     # #################### switch view
 
@@ -1159,10 +1219,6 @@ def init_main_window():
     # # Frame for restaurant food items and reviews
     # food_frame = ttk.Frame(details_notebook)
     # details_notebook.add(food_frame, text="Food Reviews")
-    
-
-    
-
     
     # columns_review = ("Username", "Review Content", "Rating", "Date")
     # review_tree = ttk.Treeview(review_frame, columns=columns_review, show="headings", height=25)
