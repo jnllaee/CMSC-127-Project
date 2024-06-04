@@ -116,6 +116,10 @@ INSERT INTO establishment_reviews (establishment_id, customer_id, date, content,
 (3, 3, '2023-05-03', 'Good pizza but slow service.', 3),
 (4, 4, '2023-05-04', 'Taco Town never disappoints.', 4);
 
+UPDATE food_item SET average_rating = (SELECT AVG(rating) FROM food_reviews WHERE food_reviews.item_id = food_item.item_id);
+
+UPDATE food_establishment SET average_rating = (SELECT AVG(rating) FROM establishment_reviews WHERE establishment_reviews.establishment_id = food_establishment.establishment_id);
+
 -- Features
 
 -- Add, update, and delete a food review

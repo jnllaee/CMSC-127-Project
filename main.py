@@ -82,17 +82,12 @@ def fetch_restaurant_reviews(establishment_id):
         return rows
     return []
 
-# Fetch all food reviews for a specific restaurant from the database
-def fetch_food_reviews(establishment_id):
+# Fetch all food reviews for a specific food item from the database
+def fetch_food_reviews(item_id):
     conn = connect_db()
     if conn:
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT fr.food_reviews_id, fi.name, c.username, fr.content, fr.rating, fr.date 
-            FROM customer c 
-            NATURAL JOIN food_reviews fr 
-            NATURAL JOIN food_item fi 
-            WHERE fi.establishment_id = ?""", (establishment_id,))
+        cursor.execute("SELECT fr.item_id, c.username, fr.content, fr.rating, fr.date FROM customer c NATURAL JOIN food_reviews fr WHERE fr.item_id=?", (item_id,))
         rows = cursor.fetchall()
         conn.close()
         return rows
@@ -860,10 +855,128 @@ def init_main_window():
         popup.geometry("800x400")
         popup.mainloop()
     
-    # Function to add food item review
+    # Function to add food item review (1)
     def add_food_item_review():
+        def submit_customer_food_item():
+            # Fetch inputs from user
+            username = entry_username.get().strip()
+            name = entry_name.get().strip()
+            
+            # Check if the username field is empty
+            if not username and not name:
+                messagebox.showerror("Error", "Please enter the customer username and name properly")
+                return
+            
+            # Query to add a food item review
+            conn = connect_db()
+            if conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT customer_id, name FROM customer WHERE username = ?",
+                (username,))
+                existing_customer = cursor.fetchone()               
+                if existing_customer:
+                    if existing_customer[1] == name:
+                        customer_id = existing_customer[0]
+                        messagebox.showinfo("Success", "Customer found. Welcome back!")
+                        conn.close()
+                        customer_popup.destroy()
+                        open_foodreview_popup(customer_id)
+                    else:
+                        messagebox.showerror("Error", "Username already in use!")
+                        return
+                else:
+                    cursor.execute("INSERT INTO customer (username, name) VALUES (?, ?)",
+                                (username, name))
+                    conn.commit()
+                    customer_id = cursor.lastrowid
+                    messagebox.showinfo("Success", "Customer added successfully")
+                    conn.close()
+                    customer_popup.destroy()
+                    open_foodreview_popup(customer_id)
+                
+        # Create pop-up window
+        customer_popup = tk.Toplevel(root)
+        customer_popup.title("Add Customer")
+        customer_popup.configure(background="#FFF2DC")
+
+        # Add necessary fields
+        ttk.Label(customer_popup, text="Username:").grid(row=0, column=0, padx=5, pady=5)
+        entry_username = ttk.Entry(customer_popup)
+        entry_username.grid(row=0, column=1, padx=5, pady=5)
+        ttk.Label(customer_popup, text="Name:").grid(row=1, column=0, padx=5, pady=5)
+        entry_name = ttk.Entry(customer_popup)
+        entry_name.grid(row=1, column=1, padx=5, pady=5)
+
+        # Add submit button
+        btn_submit = ttk.Button(customer_popup, text="Submit", command=submit_customer_food_item)
+        btn_submit.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
+
+        # Adjust pop-up window dimensions
+        customer_popup.geometry("300x250")
+        customer_popup.mainloop()
         return
     
+    # Function to add food item review (2)
+    def open_foodreview_popup(customer_id):
+        def submit_review():
+            if not food_items_tree.selection():
+                messagebox.showerror("Error", "Please select a food item")
+                return
+            
+            # Fetch user inputs
+            content = entry_content.get().strip()
+            rating = entry_rating.get().strip()
+            
+            # Check if the username field is empty
+            if not content or not rating:
+                messagebox.showerror("Error", "Please enter both fields correctly")
+                return
+            
+            item_id = food_items_tree.item(food_items_tree.selection()[0], "values")[0]       
+            conn = connect_db()
+            if conn:
+                cursor = conn.cursor()
+                cursor.execute("INSERT INTO food_reviews (item_id, customer_id, date, content, rating) VALUES (?, ?, CURDATE(), ?, ?)",
+                (item_id, customer_id, content, rating))
+                cursor.execute("SELECT AVG(rating) FROM food_reviews WHERE item_id=?", 
+                               (item_id,))
+                average_rating = cursor.fetchone()[0]
+
+                print(average_rating)
+                
+                cursor.execute("UPDATE food_item SET average_rating=? WHERE item_id=?", 
+                               (average_rating, item_id))
+                conn.commit()
+                messagebox.showinfo("Success", "Food item review added successfully")
+                conn.close()
+                review_popup.destroy()
+                
+                reviews = fetch_food_reviews(item_id)
+                update_food_reviews_table(reviews)
+                food_items = fetch_food_items()
+                update_table(food_items)
+                
+        # Create pop-up window
+        review_popup = tk.Toplevel(root)
+        review_popup.title("Add Review")
+        review_popup.configure(background="#FFF2DC")
+
+        # Necessary fields
+        ttk.Label(review_popup, text="Content:").grid(row=0, column=0, padx=5, pady=5)
+        entry_content = ttk.Entry(review_popup)
+        entry_content.grid(row=0, column=1, padx=5, pady=5)
+        ttk.Label(review_popup, text="Rating:").grid(row=1, column=0, padx=5, pady=5)
+        entry_rating = ttk.Entry(review_popup)
+        entry_rating.grid(row=1, column=1, padx=5, pady=5)
+
+        # Add submit button
+        btn_submit = ttk.Button(review_popup, text="Submit", command=submit_review)
+        btn_submit.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
+
+        # Adjust pop-up window dimensions
+        review_popup.geometry("300x250")
+        review_popup.mainloop()
+
     # Function to edit food item review
     def edit_food_item_review():
         # Function for submit button
@@ -1150,7 +1263,7 @@ def init_main_window():
     btn_fsearch_sort = ttk.Button(top1_frame, text="Search & Sort")
     btn_fsearch_sort.pack(side=tk.LEFT, padx=5)
 
-    btn_add_food_review = ttk.Button(top1_frame, text="Add Food Item Review")
+    btn_add_food_review = ttk.Button(top1_frame, text="Add Food Item Review", command=add_food_item_review)
     btn_add_food_review.pack(side=tk.RIGHT, padx=5)
 
     table1_frame = ttk.Frame(food_frame)
