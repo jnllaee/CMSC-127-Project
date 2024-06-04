@@ -1088,7 +1088,26 @@ def init_main_window():
         
         # Function to delete food item review
         def delete_food_item_review():
-            return
+            response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this food review?")
+            if response:
+                establishment_id = tree.item(tree.selection()[0], "values")[0]  
+                conn = connect_db()
+                if conn:
+                    cursor = conn.cursor()
+                    cursor.execute("DELETE FROM food_reviews WHERE food_reviews_id=?", (selected_food_review_id,))
+                    cursor.execute("SELECT AVG(rating) FROM food_reviews WHERE item_id=?", (selected_food_item_id,))
+                    average_rating = cursor.fetchone()[0]
+                
+                    cursor.execute("UPDATE food_item SET average_rating=? WHERE item_id=?", (average_rating, selected_food_item_id))
+                    conn.commit()
+                    conn.close()
+                    messagebox.showinfo("Success", "Food item successfully deleted")
+                    review_popup.destroy()
+                    
+                    reviews = fetch_food_reviews(selected_food_item_id)
+                    update_food_reviews_table(reviews)
+                    food_items = fetch_food_items(establishment_id)
+                    update_food_items_table(food_items)
     
         food_review = food_reviews_tree.selection()
         if food_review:
@@ -1423,7 +1442,7 @@ def init_main_window():
     table1_frame = ttk.Frame(food_frame)
     table1_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-    food_reviews_columns = ("Food ID", "Food Item Name", "Username", "Content", "Rating", "Date")
+    food_reviews_columns = ("Food Review ID", "Food Item Name", "Username", "Content", "Rating", "Date")
     food_reviews_tree = ttk.Treeview(table1_frame, columns=food_reviews_columns, show="headings", height=10)
     for col in food_reviews_columns:
         food_reviews_tree.heading(col, text=col)
