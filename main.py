@@ -98,6 +98,23 @@ def fetch_food_reviews(establishment_id):
         return rows
     return []
 
+# Fetch all food reviews for a specific restaurant from the database
+def fetch_all_food_reviews():
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT fr.food_reviews_id, fi.name, c.username, fr.content, fr.rating, fr.date
+            FROM customer c 
+            RIGHT JOIN food_reviews fr 
+            ON c.customer_id=fr.customer_id
+            LEFT JOIN food_item fi
+            ON fr.item_id=fi.item_id;""")
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    return []
+
 
 
 
@@ -971,6 +988,7 @@ def init_main_window():
     restaurant_reviews_columns = ("ID", "Username", "Content", "Rating", "Date")
     restaurant_reviews_tree = ttk.Treeview(root, columns=restaurant_reviews_columns, show="headings", height=5)
     for col in restaurant_reviews_columns:
+        # print("rest", col)
         restaurant_reviews_tree.heading(col, text=col)
         restaurant_reviews_tree.column(col, anchor="center", width=50)
     restaurant_reviews_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
@@ -983,6 +1001,7 @@ def init_main_window():
 
     # Update restaurant details table
     def update_table(rows):
+        # print(rows)
         for row in tree.get_children():
             tree.delete(row)
         for row in rows:
@@ -1011,18 +1030,28 @@ def init_main_window():
     food_reviews_columns = ("ID", "Food Item", "Username", "Content", "Rating", "Date")
     food_reviews_tree = ttk.Treeview(root, columns=food_reviews_columns, show="headings", height=10)
     for col in food_reviews_columns:
+        # print(col)
         food_reviews_tree.heading(col, text=col)
         food_reviews_tree.column(col, anchor="center", width=50)
     food_reviews_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
 
     tree.bind("<<TreeviewSelect>>", on_treeview_select)
     food_items_tree.bind("<<TreeviewSelect>>", edit_food_item)
-
-
-
     
+    food_reviews = fetch_all_food_reviews()
+    update_food_reviews_table(food_reviews)
+    
+    def update_food_reviews_table(rows):
+        print("rows", rows)
+        for row in tree.get_children():
+            tree.delete(row)
+        for row in rows:
+            tree.insert("", tk.END, values=row)
+            
 
-    #################
+
+
+        #################
 
 
 
