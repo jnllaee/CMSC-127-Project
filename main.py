@@ -35,7 +35,7 @@ def fetch_food_items(establishment_id):
         if establishment_id:
             cursor.execute(
                 """
-                SELECT fi.item_id, fe.name, fi.name, fi.price, fit.food_type, fi.average_rating
+                SELECT fe.name, fi.name, fit.food_type, fi.price, fi.average_rating
                 FROM food_item fi
                 NATURAL JOIN food_item_type fit
                 JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id
@@ -52,7 +52,7 @@ def fetch_all_food_items():
     conn = connect_db()
     if conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT fi.item_id, fe.name, fi.name, fi.price, fit.food_type, fi.average_rating FROM food_item fi NATURAL JOIN food_item_type fit JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id ORDER BY fi.item_id")
+        cursor.execute("SELECT fe.name, fi.name, fit.food_type, fi.price, fi.average_rating FROM food_item fi NATURAL JOIN food_item_type fit JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id ORDER BY fi.item_id")
         rows = cursor.fetchall()
         conn.close()
         return rows
@@ -71,12 +71,23 @@ def fetch_food_item_types():
         return food_type_options
     return []
 
-# Fetch all restaurant reviews from the database
+# Fetch all restaurant reviews for a restaurant from the database
 def fetch_restaurant_reviews(establishment_id):
     conn = connect_db()
     if conn:
         cursor = conn.cursor()
         cursor.execute("SELECT r.establishment_reviews_id, c.username, r.content, r.rating, r.date FROM customer c NATURAL JOIN establishment_reviews r WHERE r.establishment_id = ?", (establishment_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    return []
+
+# Fetch all restaurant reviews from the database
+def fetch_all_restaurant_reviews():
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT fe.name, c.username, r.content, r.rating, r.date FROM customer c NATURAL JOIN establishment_reviews r JOIN food_establishment fe ON r.establishment_id = fe.establishment_id")
         rows = cursor.fetchall()
         conn.close()
         return rows
@@ -88,6 +99,17 @@ def fetch_food_reviews(item_id):
     if conn:
         cursor = conn.cursor()
         cursor.execute("SELECT fr.item_id, c.username, fr.content, fr.rating, fr.date FROM customer c NATURAL JOIN food_reviews fr WHERE fr.item_id=?", (item_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    return []
+
+# Fetch all food item reviews from the database
+def fetch_all_food_reviews():
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT fi.name, c.username, fr.content, fr.rating, fr.date FROM customer c NATURAL JOIN food_reviews fr JOIN food_item fi ON fr.item_id=fi.item_id ORDER BY c.username")
         rows = cursor.fetchall()
         conn.close()
         return rows
@@ -839,7 +861,7 @@ def init_main_window():
         popup.configure(background="#FFF2DC")
         
         # Table for displaying all food items
-        all_food_items_columns = ("Food ID", "Restaurant Name", "Food Name", "Price", "Food Type", "Average Rating")
+        all_food_items_columns = ("Restaurant Name", "Food Name", "Food Type", "Price", "Average Rating")
         all_food_items_tree = ttk.Treeview(popup, columns=all_food_items_columns, show="headings", height=10)
         for col in all_food_items_columns:
             all_food_items_tree.heading(col, text=col)
@@ -916,6 +938,58 @@ def init_main_window():
         customer_popup.mainloop()
         return
     
+    # Function to display all food item reviews
+    def show_all_food_reviews():
+        all_food_reviews = fetch_all_food_reviews()
+        
+        # Create pop-up window
+        popup = tk.Toplevel(root)
+        popup.title("All Food Item Reviews")
+        popup.configure(background="#FFF2DC")
+        
+        # Table for displaying all food items
+        all_food_items_columns = ("Food Name", "Username", "Content", "Rating", "Date")
+        all_food_items_tree = ttk.Treeview(popup, columns=all_food_items_columns, show="headings", height=10)
+        for col in all_food_items_columns:
+            all_food_items_tree.heading(col, text=col)
+            all_food_items_tree.column(col, anchor="center", width=50)
+            
+        all_food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
+        
+        # Populate the table with all food items
+        for row in all_food_reviews:
+            all_food_items_tree.insert("", tk.END, values=row)
+        
+        # Adjust pop-up window dimensions
+        popup.geometry("800x400")
+        popup.mainloop()
+
+    # Function to display all restaurant reviews
+    def show_all_restaurant_reviews():
+        all_restaurant_reviews = fetch_all_restaurant_reviews()
+        
+        # Create pop-up window
+        popup = tk.Toplevel(root)
+        popup.title("All Restaurant Reviews")
+        popup.configure(background="#FFF2DC")
+        
+        # Table for displaying all restaurant reviews
+        all_food_items_columns = ("Restaurant Name", "Username", "Content", "Rating", "Date")
+        all_food_items_tree = ttk.Treeview(popup, columns=all_food_items_columns, show="headings", height=10)
+        for col in all_food_items_columns:
+            all_food_items_tree.heading(col, text=col)
+            all_food_items_tree.column(col, anchor="center", width=50)
+            
+        all_food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
+        
+        # Populate the table with all restaurant reviews
+        for row in all_restaurant_reviews:
+            all_food_items_tree.insert("", tk.END, values=row)
+        
+        # Adjust pop-up window dimensions
+        popup.geometry("800x400")
+        popup.mainloop()
+
     # Function to add food item review (2)
     def open_foodreview_popup(customer_id):
         def submit_review():
@@ -1134,7 +1208,7 @@ def init_main_window():
     btn_search_sort = ttk.Button(food_item_frame, text="Search & Sort", command=search_sort_food_items)
     btn_search_sort.pack(side=tk.LEFT, padx=5)
 
-    food_items_columns = ("Food ID", "Restaurant Name", "Food Name", "Price", "Food Type", "Average Rating")
+    food_items_columns = ("Restaurant Name", "Food Name", "Food Type", "Price", "Average Rating")
     food_items_tree = ttk.Treeview(root, columns=food_items_columns, show="headings", height=5)
     for col in food_items_columns:
         food_items_tree.heading(col, text=col)
@@ -1208,6 +1282,9 @@ def init_main_window():
     btn_add_restaurant_review = ttk.Button(top_frame, text="Add Restaurant Review", command=add_restaurant_review)
     btn_add_restaurant_review.pack(side=tk.RIGHT, padx=5)
 
+    btn_view_all_restaurant_review = ttk.Button(top_frame, text="Show All Restaurant Reviews", command=show_all_restaurant_reviews)
+    btn_view_all_restaurant_review.pack(side=tk.RIGHT, padx=5)
+
     table_frame = ttk.Frame(restaurant_frame)
     table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
@@ -1265,6 +1342,9 @@ def init_main_window():
 
     btn_add_food_review = ttk.Button(top1_frame, text="Add Food Item Review", command=add_food_item_review)
     btn_add_food_review.pack(side=tk.RIGHT, padx=5)
+
+    btn_view_all_food_review = ttk.Button(top1_frame, text="Show All Food Item Reviews", command=show_all_food_reviews)
+    btn_view_all_food_review.pack(side=tk.RIGHT, padx=5)
 
     table1_frame = ttk.Frame(food_frame)
     table1_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
