@@ -29,25 +29,36 @@ def fetch_restaurants():
 
 
 
-# Fetch all food items of the selected item (based on the restaurant selected) from the database
-def fetch_food_items(establishment_id):
+# Fetch all food items or the food items of a specific establishment
+def fetch_food_items(establishment_id=None):
     conn = connect_db()
     if conn:
         cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT fi.item_id, fe.name, fi.name, fi.price, fit.food_type, fi.average_rating
-            FROM food_item fi
-            NATURAL JOIN food_item_type fit
-            JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id
-            WHERE fi.establishment_id = ?
-            """, (establishment_id,)
-        )
+        if establishment_id:
+            cursor.execute(
+                """
+                SELECT fi.item_id, fe.name, fi.name, fi.price, fit.food_type, fi.average_rating
+                FROM food_item fi
+                NATURAL JOIN food_item_type fit
+                JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id
+                WHERE fi.establishment_id = ?
+                """, (establishment_id,)
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT fi.item_id, fe.name, fi.name, fi.price, fit.food_type, fi.average_rating
+                FROM food_item fi
+                NATURAL JOIN food_item_type fit
+                JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id
+                """
+            )
         rows = cursor.fetchall()
         conn.close()
         return rows
     return []
 
+# Fetch food item types
 def fetch_food_item_types():
     conn = connect_db()
     if conn:
@@ -70,6 +81,25 @@ def fetch_restaurant_reviews(establishment_id):
         conn.close()
         return rows
     return []
+
+# Fetch all food reviews for a specific restaurant from the database
+def fetch_food_reviews(establishment_id):
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT fr.food_reviews_id, fi.name, c.username, fr.content, fr.rating, fr.date 
+            FROM customer c 
+            NATURAL JOIN food_reviews fr 
+            NATURAL JOIN food_item fi 
+            WHERE fi.establishment_id = ?""", (establishment_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    return []
+
+
+
 
 # Initialize main window
 def init_main_window():
@@ -519,6 +549,9 @@ def init_main_window():
                 messagebox.showinfo("Success", "Food item added successfully")
                 popup.destroy()
 
+
+
+
         # Create pop-up window
         popup = tk.Toplevel(root)
         popup.title("Add Food Item to Restaurant")
@@ -723,6 +756,8 @@ def init_main_window():
             # Adjust pop-up window dimensions
             review_popup.geometry("")
             review_popup.mainloop()
+
+
         
     def on_treeview_select(event):
         item = tree.selection()[0]
@@ -738,8 +773,17 @@ def init_main_window():
         update_food_items_table(food_items)
         restaurant_reviews = fetch_restaurant_reviews(data[0])
         update_restaurant_reviews_table(restaurant_reviews)
+        food_reviews = fetch_food_reviews(data[0])
+        update_food_reviews_table(food_reviews)
 
         edit_restaurant()
+
+    # Update food reviews table
+    def update_food_reviews_table(rows):
+        for row in food_reviews_tree.get_children():
+            food_reviews_tree.delete(row)
+        for row in rows:
+            food_reviews_tree.insert("", tk.END, values=row)
 
     root = tk.Tk()
     root.title("GrubHub")
@@ -807,7 +851,7 @@ def init_main_window():
     
     # Table for displaying restaurants
     columns = ("ID", "Name", "Contact Info", "Average Rating", "Website", "Location")
-    tree = ttk.Treeview(root, columns=columns, show="headings", height=10)
+    tree = ttk.Treeview(root, columns=columns, show="headings", height=5)
     for col in columns:
         tree.heading(col, text=col)
         tree.column(col, anchor="center", width=50)
@@ -873,19 +917,59 @@ def init_main_window():
 
     # Table for displaying food items
     food_items_columns = ("Food ID", "Restaurant Name", "Food Name", "Price", "Food Type", "Average Rating")
-    food_items_tree = ttk.Treeview(root, columns=food_items_columns, show="headings", height=10)
+    food_items_tree = ttk.Treeview(root, columns=food_items_columns, show="headings", height=5)
     for col in food_items_columns:
         food_items_tree.heading(col, text=col)
         food_items_tree.column(col, anchor="center", width=50)
 
     food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
+
+
+    ##########show all food items in a new window = need na asa table mismo!
+
+
+    # Function to display all food items in a new window
+    def show_all_food_items():
+        all_food_items = fetch_food_items()
+        
+        # Create pop-up window
+        popup = tk.Toplevel(root)
+        popup.title("All Food Items")
+        popup.configure(background="#FFF2DC")
+        
+        # Table for displaying all food items
+        all_food_items_columns = ("Food ID", "Restaurant Name", "Food Name", "Price", "Food Type", "Average Rating")
+        all_food_items_tree = ttk.Treeview(popup, columns=all_food_items_columns, show="headings", height=10)
+        for col in all_food_items_columns:
+            all_food_items_tree.heading(col, text=col)
+            all_food_items_tree.column(col, anchor="center", width=50)
+            
+        all_food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
+        
+        # Populate the table with all food items
+        for row in all_food_items:
+            all_food_items_tree.insert("", tk.END, values=row)
+        
+        # Adjust pop-up window dimensions
+        popup.geometry("800x400")
+        popup.mainloop()
+
+    show_all_food_frame = ttk.Frame(root)
+    show_all_food_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
+    
+
+        # Button to show all food items
+    btn_show_all_food_items = ttk.Button(show_all_food_frame, text="Show All Food Items", command=show_all_food_items)
+    btn_show_all_food_items.pack(side=tk.RIGHT, padx=5)
+
+    ################Resto rev
     
     lbl_Reviews = ttk.Label(root, text="Reviews", font=("Inter", 14, "bold"), background="#FFF2DC")
     lbl_Reviews.pack(side=tk.TOP, padx=5, pady=5)
 
     # Table for displaying restaurant reviews
     restaurant_reviews_columns = ("ID", "Username", "Content", "Rating", "Date")
-    restaurant_reviews_tree = ttk.Treeview(root, columns=restaurant_reviews_columns, show="headings", height=10)
+    restaurant_reviews_tree = ttk.Treeview(root, columns=restaurant_reviews_columns, show="headings", height=5)
     for col in restaurant_reviews_columns:
         restaurant_reviews_tree.heading(col, text=col)
         restaurant_reviews_tree.column(col, anchor="center", width=50)
@@ -918,39 +1002,92 @@ def init_main_window():
         for row in rows:
             restaurant_reviews_tree.insert("", tk.END, values=row)
 
-    # Function to display all food items in a new window
-    def show_all_food_items():
-        all_food_items = fetch_food_items()
-        
-        # Create pop-up window
-        popup = tk.Toplevel(root)
-        popup.title("All Food Items")
-        popup.configure(background="#FFF2DC")
-        
-        # Table for displaying all food items
-        all_food_items_columns = ("Food ID", "Restaurant Name", "Food Name", "Price", "Food Type", "Average Rating")
-        all_food_items_tree = ttk.Treeview(popup, columns=all_food_items_columns, show="headings", height=10)
-        for col in all_food_items_columns:
-            all_food_items_tree.heading(col, text=col)
-            all_food_items_tree.column(col, anchor="center", width=50)
-            
-        all_food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
-        
-        # Populate the table with all food items
-        for row in all_food_items:
-            all_food_items_tree.insert("", tk.END, values=row)
-        
-        # Adjust pop-up window dimensions
-        popup.geometry("800x400")
-        popup.mainloop()
+##############/////
+    # Label for Food Reviews
+    lbl_food_reviews = ttk.Label(root, text="Food Reviews", font=("Inter", 14, "bold"), background="#FFF2DC")
+    lbl_food_reviews.pack(side=tk.TOP, padx=5, pady=5)
+
+    # Table for displaying food reviews
+    food_reviews_columns = ("ID", "Food Item", "Username", "Content", "Rating", "Date")
+    food_reviews_tree = ttk.Treeview(root, columns=food_reviews_columns, show="headings", height=10)
+    for col in food_reviews_columns:
+        food_reviews_tree.heading(col, text=col)
+        food_reviews_tree.column(col, anchor="center", width=50)
+    food_reviews_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
+
+    tree.bind("<<TreeviewSelect>>", on_treeview_select)
+    food_items_tree.bind("<<TreeviewSelect>>", edit_food_item)
+
+
+
     
-    # Button to show all food items
-    btn_show_all_food_items = ttk.Button(search_frame, text="Show All Food Items", command=show_all_food_items)
-    btn_show_all_food_items.pack(side=tk.RIGHT, padx=5)
+
+    #################
+
+
+
     
     # Load initial data
     restaurants = fetch_restaurants()
     update_table(restaurants)
+
+
+    #################### for food reviews view
+
+
+
+    # #################### switch view
+
+    # # Frame for restaurant details
+    # details_frame = ttk.Frame(root)
+    # details_frame.pack(side=tk.TOP, fill=tk.BOTH, padx=10, pady=10, expand=True)
+
+    # details_notebook = ttk.Notebook(details_frame)
+    # details_notebook.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    # review_frame = ttk.Frame(details_notebook)
+    # details_notebook.add(review_frame, text="Restaurant Reviews")
+
+    # # Frame for restaurant food items and reviews
+    # food_frame = ttk.Frame(details_notebook)
+    # details_notebook.add(food_frame, text="Food Reviews")
+    
+
+    
+
+    
+    # columns_review = ("Username", "Review Content", "Rating", "Date")
+    # review_tree = ttk.Treeview(review_frame, columns=columns_review, show="headings", height=25)
+    # for col in columns_review:
+    #     review_tree.heading(col, text=col)
+    #     review_tree.column(col, anchor="center", width=150)
+    # review_tree.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+    # columns_food = ("Username", "Review Content", "Rating", "Date")
+    # food_tree = ttk.Treeview(food_frame, columns=columns_food, show="headings", height=25)
+    # for col in columns_food:
+    #     food_tree.heading(col, text=col)
+    #     food_tree.column(col, anchor="center", width=150)
+    # food_tree.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+    # def display_details(event):
+    #     selected_item = tree.selection()[0]
+    #     restaurant = tree.item(selected_item, "values")
+    #     establishment_id = restaurant[0]
+
+    #     # Fetch and display food items for the selected restaurant
+    #     food_items = fetch_food_items(establishment_id)
+    #     food_tree.delete(*food_tree.get_children())
+    #     for item in food_items:
+    #         food_tree.insert("", tk.END, values=item)
+
+    #     # Fetch and display reviews for the selected restaurant
+    #     reviews = fetch_restaurant_reviews(establishment_id)
+    #     review_tree.delete(*review_tree.get_children())
+    #     for review in reviews:
+    #         review_tree.insert("", tk.END, values=review)
+
+    # tree.bind("<<TreeviewSelect>>", display_details)
 
     root.mainloop()
 
