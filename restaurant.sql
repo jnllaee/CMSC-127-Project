@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS food_establishment(
     establishment_id INT(10) NOT NULL AUTO_INCREMENT,
     name VARCHAR (40) NOT NULL,
     contact_info VARCHAR(50) DEFAULT NULL,
-    average_rating INT(2) NOT NULL DEFAULT 0,
+    average_rating DECIMAL(3,2) DEFAULT 0,
     website VARCHAR(50) DEFAULT NULL,
     location VARCHAR (100) NOT NULL,
     PRIMARY KEY(establishment_id)
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS food_item(
     item_id INT(10) NOT NULL AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL,
     price INT(5) NOT NULL,
-    average_rating INT(2) NOT NULL DEFAULT 0,
+    average_rating DECIMAL(3,2) DEFAULT 0,
     establishment_id INT(10) NOT NULL,
     food_type_id INT(2) NOT NULL,
     PRIMARY KEY(item_id),
@@ -82,11 +82,11 @@ INSERT INTO customer (username, name) VALUES
 ('bob_builder', 'Bob Builder');
 
 -- Insert dummy data into FOOD_ESTABLISHMENT table
-INSERT INTO food_establishment (name, contact_info, average_rating, website, location) VALUES
-('The Food Place', '123-456-7890', 4, 'www.thefoodplace.com', '123 Main St'),
-('Burger Haven', '234-567-8901', 5, 'www.burgerhaven.com', '456 Elm St'),
-('Pizza Paradise', '345-678-9012', 3, 'www.pizzaparadise.com', '789 Oak St'),
-('Taco Town', '456-789-0123', 4, 'www.tacotown.com', '101 Pine St');
+INSERT INTO food_establishment (name, contact_info, website, location) VALUES
+('The Food Place', '123-456-7890', 'www.thefoodplace.com', '123 Main St'),
+('Burger Haven', '234-567-8901', 'www.burgerhaven.com', '456 Elm St'),
+('Pizza Paradise', '345-678-9012', 'www.pizzaparadise.com', '789 Oak St'),
+('Taco Town', '456-789-0123', 'www.tacotown.com', '101 Pine St');
 
 -- Insert dummy data into FOOD_ITEM_TYPE table
 INSERT INTO food_item_type (food_type) VALUES
@@ -96,11 +96,11 @@ INSERT INTO food_item_type (food_type) VALUES
 ('Pasta');
 
 -- Insert dummy data into FOOD_ITEM table
-INSERT INTO food_item (name, price, average_rating, establishment_id, food_type_id) VALUES
-('Classic Burger', 10, 5, 2, 1),
-('Cheese Pizza', 12, 4, 3, 2),
-('Beef Taco', 8, 4, 4, 3),
-('Spaghetti Carbonara', 15, 5, 1, 4);
+INSERT INTO food_item (name, price, establishment_id, food_type_id) VALUES
+('Classic Burger', 10, 2, 1),
+('Cheese Pizza', 12, 3, 2),
+('Beef Taco', 8, 4, 3),
+('Spaghetti Carbonara', 15, 1, 4);
 
 -- Insert dummy data into FOOD_REVIEWS table
 INSERT INTO food_reviews (item_id, customer_id, date, content, rating) VALUES

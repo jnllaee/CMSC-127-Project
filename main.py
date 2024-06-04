@@ -568,8 +568,10 @@ def init_main_window():
                 food_type_id = cursor.fetchone()[0]
 
                 # Insert the food item into the database
-                cursor.execute("INSERT INTO food_item(name, price, establishment_id, food_type_id) VALUES (?, ?, ?, ?)",
-                            (food_item_name, food_item_price, selected_restaurant_id, food_type_id))
+                cursor.execute("INSERT INTO food_item(name, price, establishment_id, food_type_id, average_rating) VALUES (?, ?, ?, ?, ?)",
+                            (food_item_name, food_item_price, selected_restaurant_id, food_type_id, 0))
+                
+                
             
                 conn.commit()
                 conn.close()
@@ -847,10 +849,10 @@ def init_main_window():
             entry_review_rating.grid(row=1, column=1, padx=5, pady=5)
             entry_review_rating.insert(0, establishment_review[2])
 
-            btn_delete = ttk.Button(review_popup, text="Delete Establishment Review", command=delete_establishment_review)
+            btn_delete = ttk.Button(review_popup, text="Delete Review", command=delete_establishment_review)
             btn_delete.grid(row=3, column=0, columnspan=2, padx=5, pady=10)
 
-            btn_edit = ttk.Button(review_popup, text="Submit", command=submit_review)
+            btn_edit = ttk.Button(review_popup, text="Submit Review", command=submit_review)
             btn_edit.grid(row=4, column=0, columnspan=2, padx=5, pady=10)
 
             # Adjust pop-up window dimensions
@@ -1012,7 +1014,9 @@ def init_main_window():
                 messagebox.showerror("Error", "Please enter both fields correctly")
                 return
             
-            item_id = food_items_tree.item(food_items_tree.selection()[0], "values")[0]       
+            establishment_id = tree.item(tree.selection()[0], "values")[0]  
+            item_id = food_items_tree.item(food_items_tree.selection()[0], "values")[0]  
+            
             conn = connect_db()
             if conn:
                 cursor = conn.cursor()
@@ -1021,8 +1025,6 @@ def init_main_window():
                 cursor.execute("SELECT AVG(rating) FROM food_reviews WHERE item_id=?", 
                                (item_id,))
                 average_rating = cursor.fetchone()[0]
-
-                print(average_rating)
                 
                 cursor.execute("UPDATE food_item SET average_rating=? WHERE item_id=?", 
                                (average_rating, item_id))
@@ -1033,8 +1035,8 @@ def init_main_window():
                 
                 reviews = fetch_food_reviews(item_id)
                 update_food_reviews_table(reviews)
-                food_items = fetch_food_items()
-                update_table(food_items)
+                food_items = fetch_food_items(establishment_id)
+                update_food_items_table(food_items)
                 
         # Create pop-up window
         review_popup = tk.Toplevel(root)
@@ -1058,15 +1060,64 @@ def init_main_window():
         review_popup.mainloop()
 
     # Function to edit food item review
-    def edit_food_item_review():
+    def edit_food_item_review(event):
         # Function for submit button
         def submit_button():
-            return
+            review_content = entry_review_content.get().strip()
+            review_rating = entry_review_rating.get().strip()
+            
+            establishment_id = tree.item(tree.selection()[0], "values")[0]  
+            conn = connect_db()
+            if conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE food_reviews SET content=?, rating=? WHERE food_reviews_id=? AND item_id=?", 
+                               (review_content, review_rating, selected_food_review_id, selected_food_item_id))
+                cursor.execute("SELECT AVG(rating) FROM food_reviews WHERE item_id=?", (selected_food_item_id,))
+                average_rating = cursor.fetchone()[0]
+                
+                cursor.execute("UPDATE food_item SET average_rating=? WHERE item_id=?", (average_rating, selected_food_item_id))
+                conn.commit()
+                conn.close()
+                messagebox.showinfo("Success", "Food review updated successfully")
+                review_popup.destroy()
+                
+                reviews = fetch_food_reviews(selected_food_item_id)
+                update_food_reviews_table(reviews)
+                food_items = fetch_food_items(establishment_id)
+                update_food_items_table(food_items)
         
         # Function to delete food item review
         def delete_food_item_review():
             return
-        return
+    
+        food_review = food_reviews_tree.selection()
+        if food_review:
+            selected_food_review_id = food_reviews_tree.item(food_review, "values")[0]
+            
+            # Create pop-up window
+            review_popup = tk.Toplevel(root)
+            review_popup.title("Food Reviews")
+            review_popup.configure(background="#FFF2DC")
+            
+            ttk.Label(review_popup, text="Content:").grid(row=0, column=0, padx=5, pady=5)
+            entry_review_content = ttk.Entry(review_popup)
+            entry_review_content.grid(row=0, column=1, padx=5, pady=5)
+            entry_review_content.insert(0, food_reviews_tree.item(food_review, "values")[3])
+
+            ttk.Label(review_popup, text="Rating:").grid(row=1, column=0, padx=5, pady=5)
+            entry_review_rating = ttk.Entry(review_popup)
+            entry_review_rating.grid(row=1, column=1, padx=5, pady=5)
+            entry_review_rating.insert(0, food_reviews_tree.item(food_review, "values")[4])
+
+            btn_delete = ttk.Button(review_popup, text="Delete Review", command=delete_food_item_review)
+            btn_delete.grid(row=3, column=0, columnspan=2, padx=5, pady=10)
+
+            btn_edit = ttk.Button(review_popup, text="Submit Review", command=submit_button)
+            btn_edit.grid(row=4, column=0, columnspan=2, padx=5, pady=10)
+
+            # Adjust pop-up window dimensions
+            review_popup.geometry("300x150")
+            review_popup.mainloop()
 
     # Function to execute when a restaurant is selected
     def on_restaurant_select(event):
@@ -1099,7 +1150,7 @@ def init_main_window():
         food_reviews = fetch_food_reviews(selected_food_item_id)
         update_food_reviews_table(food_reviews)
         
-        edit_food_item()
+        edit_food_item(event)
 
     def clear_food_reviews_table():
         for i in food_reviews_tree.get_children():
@@ -1386,6 +1437,8 @@ def init_main_window():
     restaurant_reviews_tree.bind("<<TreeviewSelect>>", edit_restaurant_review)
     
     food_items_tree.bind('<<TreeviewSelect>>', on_food_item_select)
+    food_reviews_tree.bind("<<TreeviewSelect>>", edit_food_item_review)
+    
 
     # Update restaurant details table
     def update_table(rows):
