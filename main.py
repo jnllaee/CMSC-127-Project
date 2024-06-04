@@ -271,6 +271,9 @@ def init_main_window():
                 conn.close()
                 messagebox.showinfo("Success", "Restaurant added successfully")
                 popup.destroy()
+                
+                restaurants = fetch_restaurants()
+                update_table(restaurants)
 
         # Create pop-up window
         popup = tk.Toplevel(root)
@@ -315,7 +318,7 @@ def init_main_window():
                 messagebox.showerror("Error", "Please enter both fields correctly")
                 return
             
-            establishment_id = tree.item(tree.selection()[0], "values")[0]       
+            # establishment_id = tree.item(tree.selection()[0], "values")[0]       
             conn = connect_db()
             if conn:
                 cursor = conn.cursor()
@@ -326,13 +329,13 @@ def init_main_window():
                 average_rating = cursor.fetchone()[0]
                 
                 cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
-                               (average_rating, establishment_id))
+                               (average_rating, selected_restaurant_id))
                 conn.commit()
                 messagebox.showinfo("Success", "Restaurant review added successfully")
                 conn.close()
                 review_popup.destroy()
                 
-                reviews = fetch_restaurant_reviews(establishment_id)
+                reviews = fetch_restaurant_reviews(selected_restaurant_id)
                 update_restaurant_reviews_table(reviews)
                 restaurants = fetch_restaurants()
                 update_table(restaurants)
@@ -391,6 +394,8 @@ def init_main_window():
                 #UPDATE TABLE
                 restaurants = fetch_restaurants()
                 update_table(restaurants)
+                food_items = fetch_food_items(selected_restaurant_id)
+                update_food_items_table(food_items)
 
         # Function to handle deletion of restaurant
         def delete_restaurant():
@@ -421,6 +426,8 @@ def init_main_window():
                     popup.destroy()
                     restaurants = fetch_restaurants()
                     update_table(restaurants)
+                    food_items = fetch_food_items(selected_restaurant_id)
+                    update_food_items_table(food_items)
 
         # Fetch current restaurant details
         conn = connect_db()
@@ -570,14 +577,15 @@ def init_main_window():
                 # Insert the food item into the database
                 cursor.execute("INSERT INTO food_item(name, price, establishment_id, food_type_id, average_rating) VALUES (?, ?, ?, ?, ?)",
                             (food_item_name, food_item_price, selected_restaurant_id, food_type_id, 0))
-                
-                
             
                 conn.commit()
                 conn.close()
 
                 messagebox.showinfo("Success", "Food item added successfully")
                 popup.destroy()
+                
+                food_items = fetch_food_items(selected_restaurant_id)
+                update_food_items_table(food_items)
 
         # Create pop-up window
         popup = tk.Toplevel(root)
@@ -636,6 +644,9 @@ def init_main_window():
                 conn.close()
                 messagebox.showinfo("Success", "Food item updated successfully")
                 popup.destroy()
+                
+                food_items = fetch_food_items(selected_restaurant_id)
+                update_food_items_table(food_items)
 
         # Function to delete a food item
         def delete_food_item():
@@ -650,6 +661,9 @@ def init_main_window():
                     conn.close()
                     messagebox.showinfo("Success", "Food item successfully deleted")
                     popup.destroy()
+                    
+                    food_items = fetch_food_items(selected_restaurant_id)
+                    update_food_items_table(food_items)
     
         food_item = food_items_tree.selection()
         selected_food_item_id = food_items_tree.item(food_item, "values")[0]
@@ -1014,7 +1028,7 @@ def init_main_window():
                 messagebox.showerror("Error", "Please enter both fields correctly")
                 return
             
-            establishment_id = tree.item(tree.selection()[0], "values")[0]  
+            # establishment_id = tree.item(tree.selection()[0], "values")[0]  
             item_id = food_items_tree.item(food_items_tree.selection()[0], "values")[0]  
             
             conn = connect_db()
@@ -1035,7 +1049,7 @@ def init_main_window():
                 
                 reviews = fetch_food_reviews(item_id)
                 update_food_reviews_table(reviews)
-                food_items = fetch_food_items(establishment_id)
+                food_items = fetch_food_items(selected_restaurant_id)
                 update_food_items_table(food_items)
                 
         # Create pop-up window
@@ -1066,7 +1080,7 @@ def init_main_window():
             review_content = entry_review_content.get().strip()
             review_rating = entry_review_rating.get().strip()
             
-            establishment_id = tree.item(tree.selection()[0], "values")[0]  
+            # establishment_id = tree.item(tree.selection()[0], "values")[0]  
             conn = connect_db()
             if conn:
                 cursor = conn.cursor()
@@ -1083,14 +1097,14 @@ def init_main_window():
                 
                 reviews = fetch_food_reviews(selected_food_item_id)
                 update_food_reviews_table(reviews)
-                food_items = fetch_food_items(establishment_id)
+                food_items = fetch_food_items(selected_restaurant_id)
                 update_food_items_table(food_items)
         
         # Function to delete food item review
         def delete_food_item_review():
             response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this food review?")
             if response:
-                establishment_id = tree.item(tree.selection()[0], "values")[0]  
+                # establishment_id = tree.item(tree.selection()[0], "values")[0]  
                 conn = connect_db()
                 if conn:
                     cursor = conn.cursor()
@@ -1106,7 +1120,7 @@ def init_main_window():
                     
                     reviews = fetch_food_reviews(selected_food_item_id)
                     update_food_reviews_table(reviews)
-                    food_items = fetch_food_items(establishment_id)
+                    food_items = fetch_food_items(selected_restaurant_id)
                     update_food_items_table(food_items)
     
         food_review = food_reviews_tree.selection()
