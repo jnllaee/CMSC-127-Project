@@ -1317,55 +1317,6 @@ def init_main_window():
     restaurants = fetch_restaurants()
     update_table(restaurants)
 
-    # #################### switch view
-
-    # # Frame for restaurant details
-    # details_frame = ttk.Frame(root)
-    # details_frame.pack(side=tk.TOP, fill=tk.BOTH, padx=10, pady=10, expand=True)
-
-    # details_notebook = ttk.Notebook(details_frame)
-    # details_notebook.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-    # review_frame = ttk.Frame(details_notebook)
-    # details_notebook.add(review_frame, text="Restaurant Reviews")
-
-    # # Frame for restaurant food items and reviews
-    # food_frame = ttk.Frame(details_notebook)
-    # details_notebook.add(food_frame, text="Food Reviews")
-    
-    # columns_review = ("Username", "Review Content", "Rating", "Date")
-    # review_tree = ttk.Treeview(review_frame, columns=columns_review, show="headings", height=25)
-    # for col in columns_review:
-    #     review_tree.heading(col, text=col)
-    #     review_tree.column(col, anchor="center", width=150)
-    # review_tree.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-    # columns_food = ("Username", "Review Content", "Rating", "Date")
-    # food_tree = ttk.Treeview(food_frame, columns=columns_food, show="headings", height=25)
-    # for col in columns_food:
-    #     food_tree.heading(col, text=col)
-    #     food_tree.column(col, anchor="center", width=150)
-    # food_tree.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-    # def display_details(event):
-    #     selected_item = tree.selection()[0]
-    #     restaurant = tree.item(selected_item, "values")
-    #     establishment_id = restaurant[0]
-
-    #     # Fetch and display food items for the selected restaurant
-    #     food_items = fetch_food_items(establishment_id)
-    #     food_tree.delete(*food_tree.get_children())
-    #     for item in food_items:
-    #         food_tree.insert("", tk.END, values=item)
-
-    #     # Fetch and display reviews for the selected restaurant
-    #     reviews = fetch_restaurant_reviews(establishment_id)
-    #     review_tree.delete(*review_tree.get_children())
-    #     for review in reviews:
-    #         review_tree.insert("", tk.END, values=review)
-
-    # tree.bind("<<TreeviewSelect>>", display_details)
-
     root.mainloop()
 
 # Run the application
