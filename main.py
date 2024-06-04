@@ -1069,7 +1069,7 @@ def init_main_window():
         return
 
     # Function to execute when a restaurant is selected
-    def on_treeview_select(event):
+    def on_restaurant_select(event):
         item = tree.selection()[0]
         
         # Get the data from the selected item
@@ -1081,13 +1081,30 @@ def init_main_window():
         # Fetch and display food items and reviews associated with selected restaurant
         food_items = fetch_food_items(data[0])
         update_food_items_table(food_items)
+        
         restaurant_reviews = fetch_restaurant_reviews(data[0])
         update_restaurant_reviews_table(restaurant_reviews)
-        food_reviews = fetch_food_reviews(data[0])
-        update_food_reviews_table(food_reviews)
+        
+        clear_food_reviews_table()
 
         edit_restaurant()
+    
+    def on_food_item_select(event):
+        item = food_items_tree.selection()[0]
+        data = food_items_tree.item(item, "values")
+        
+        global selected_food_item_id
+        selected_food_item_id = data[0]
+        
+        food_reviews = fetch_food_reviews(selected_food_item_id)
+        update_food_reviews_table(food_reviews)
+        
+        edit_food_item()
 
+    def clear_food_reviews_table():
+        for i in food_reviews_tree.get_children():
+            food_reviews_tree.delete(i)
+    
     root = tk.Tk()
     root.title("GrubHub")
     root.iconbitmap("src/Icon.ico")
@@ -1362,14 +1379,13 @@ def init_main_window():
         food_reviews_tree.column(col, anchor="center", width=50)
     food_reviews_tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-    tree.bind("<<TreeviewSelect>>", on_treeview_select)
-    food_items_tree.bind("<<TreeviewSelect>>", edit_food_item)
-        
-    tree.bind("<<TreeviewSelect>>", on_treeview_select)
+    tree.bind("<<TreeviewSelect>>", on_restaurant_select)
     food_items_tree.bind("<<TreeviewSelect>>", edit_food_item)
     
-    tree.bind("<<TreeviewSelect>>", on_treeview_select)
+    tree.bind("<<TreeviewSelect>>", on_restaurant_select)
     restaurant_reviews_tree.bind("<<TreeviewSelect>>", edit_restaurant_review)
+    
+    food_items_tree.bind('<<TreeviewSelect>>', on_food_item_select)
 
     # Update restaurant details table
     def update_table(rows):
