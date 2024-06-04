@@ -27,7 +27,7 @@ def fetch_restaurants():
         return rows
     return []
 
-# Fetch all food items of the selected item (based on the restaurant selected) from the database
+# Fetch all food items of the selected restaurant from the database
 def fetch_food_items(establishment_id):
     conn = connect_db()
     if conn:
@@ -47,7 +47,7 @@ def fetch_food_items(establishment_id):
         return rows
     return []
 
-# Fetch all food items
+# Fetch all food items from the database
 def fetch_all_food_items():
     conn = connect_db()
     if conn:
@@ -58,7 +58,7 @@ def fetch_all_food_items():
         return rows
     return []
 
-# Fetch food item types
+# Fetch food item types from the database
 def fetch_food_item_types():
     conn = connect_db()
     if conn:
@@ -102,6 +102,7 @@ def fetch_food_reviews(establishment_id):
 def init_main_window():
     # Function to search and sort restaurants
     def search_sort_restaurants():
+        # Fetch all inputs from the user
         query = entry_search.get().lower()
         rating_filter = rating_var.get()
         sort_option = sort_var.get()
@@ -119,6 +120,7 @@ def init_main_window():
         elif rating_filter == "None":
             min_rating = 0
         
+        # Query for search and sort
         conn = connect_db()
         if conn:
             cursor = conn.cursor()
@@ -160,11 +162,11 @@ def init_main_window():
             
             update_table(rows)
     
-    # Function to add restaurant
+    # Function to add restaurant review (1)
     def add_restaurant_review():
         # Function to handle submission of restaurant details
         def submit_customer_restaurant():
-            # Get values from entry fields
+            # Fetch inputs from user
             username = entry_username.get().strip()
             name = entry_name.get().strip()
             
@@ -173,6 +175,7 @@ def init_main_window():
                 messagebox.showerror("Error", "Please enter the customer username and name properly")
                 return
             
+            # Query to add a restaurant review
             conn = connect_db()
             if conn:
                 cursor = conn.cursor()
@@ -204,11 +207,10 @@ def init_main_window():
         customer_popup.title("Add Customer")
         customer_popup.configure(background="#FFF2DC")
 
-        # Design the UI
+        # Add necessary fields
         ttk.Label(customer_popup, text="Username:").grid(row=0, column=0, padx=5, pady=5)
         entry_username = ttk.Entry(customer_popup)
         entry_username.grid(row=0, column=1, padx=5, pady=5)
-
         ttk.Label(customer_popup, text="Name:").grid(row=1, column=0, padx=5, pady=5)
         entry_name = ttk.Entry(customer_popup)
         entry_name.grid(row=1, column=1, padx=5, pady=5)
@@ -225,6 +227,7 @@ def init_main_window():
     def add_restaurant():
         # Function to handle submission of restaurant details
         def submit_restaurant():
+            # Fetch user inputs
             name = entry_name.get().strip()
             contact_info = entry_contact_info.get().strip()
             website = entry_website.get().strip()
@@ -251,19 +254,16 @@ def init_main_window():
         popup.title("Add Restaurant")
         popup.configure(background="#FFF2DC")
 
-        # Design the UI
+        # Necessary fields
         ttk.Label(popup, text="Name:").grid(row=0, column=0, padx=5, pady=5)
         entry_name = ttk.Entry(popup)
         entry_name.grid(row=0, column=1, padx=5, pady=5)
-
         ttk.Label(popup, text="Contact Info:").grid(row=1, column=0, padx=5, pady=5)
         entry_contact_info = ttk.Entry(popup)
         entry_contact_info.grid(row=1, column=1, padx=5, pady=5)
-
         ttk.Label(popup, text="Website:").grid(row=3, column=0, padx=5, pady=5)
         entry_website = ttk.Entry(popup)
         entry_website.grid(row=3, column=1, padx=5, pady=5)
-
         ttk.Label(popup, text="Location:").grid(row=4, column=0, padx=5, pady=5)
         entry_location = ttk.Entry(popup)
         entry_location.grid(row=4, column=1, padx=5, pady=5)
@@ -275,14 +275,15 @@ def init_main_window():
         # Adjust pop-up window dimensions
         popup.geometry("300x250")
         popup.mainloop()
-        
+    
+    # Function to add restaurant review (2)
     def open_review_popup(customer_id):
         def submit_review():
             if not tree.selection():
                 messagebox.showerror("Error", "Please select a restaurant")
                 return
             
-            # Get values from entry fields
+            # Fetch user inputs
             content = entry_content.get().strip()
             rating = entry_rating.get().strip()
             
@@ -306,7 +307,6 @@ def init_main_window():
                 conn.commit()
                 messagebox.showinfo("Success", "Restaurant review added successfully")
                 conn.close()
-                # messagebox.showinfo("Success", "Restaurant review added successfully")
                 review_popup.destroy()
                 
                 reviews = fetch_restaurant_reviews(establishment_id)
@@ -319,11 +319,10 @@ def init_main_window():
         review_popup.title("Add Review")
         review_popup.configure(background="#FFF2DC")
 
-        # Design the UI
+        # Necessary fields
         ttk.Label(review_popup, text="Content:").grid(row=0, column=0, padx=5, pady=5)
         entry_content = ttk.Entry(review_popup)
         entry_content.grid(row=0, column=1, padx=5, pady=5)
-
         ttk.Label(review_popup, text="Rating:").grid(row=1, column=0, padx=5, pady=5)
         entry_rating = ttk.Entry(review_popup)
         entry_rating.grid(row=1, column=1, padx=5, pady=5)
@@ -336,6 +335,7 @@ def init_main_window():
         review_popup.geometry("300x250")
         review_popup.mainloop()
     
+    # Function to edit restaurant
     def edit_restaurant():
         if not selected_restaurant_id:
             messagebox.showerror("Error", "No restaurant selected for editing")
@@ -343,6 +343,7 @@ def init_main_window():
         
         # Function to handle submission of edited restaurant details
         def submit_restaurant():
+            # Fetch user inputs
             name = entry_name.get().strip()
             contact_info = entry_contact_info.get().strip()
             website = entry_website.get().strip()
@@ -367,6 +368,7 @@ def init_main_window():
                 #UPDATE TABLE
                 restaurants = fetch_restaurants()
                 update_table(restaurants)
+
         # Function to handle deletion of restaurant
         def delete_restaurant():
             response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this restaurant?")
@@ -396,6 +398,7 @@ def init_main_window():
                     popup.destroy()
                     restaurants = fetch_restaurants()
                     update_table(restaurants)
+
         # Fetch current restaurant details
         conn = connect_db()
         if conn:
@@ -445,7 +448,9 @@ def init_main_window():
         popup.geometry("")
         popup.mainloop()
 
+    # Function to search and sort food items of a restaurant
     def search_sort_food_items():
+        # Fetch user input
         query = entry_food_item_search.get().lower()
         food_type_filter = food_type_var.get()
         sort_option = sort_food_item_var.get()
@@ -453,6 +458,7 @@ def init_main_window():
         price_range_max = pricerange_max.get()
         sortdir_option = sortdir_food_item_var.get()
         
+        # Query for search and sort
         conn = connect_db()
         if conn:
             cursor = conn.cursor()
@@ -501,7 +507,9 @@ def init_main_window():
             
             update_food_items_table(rows)
 
+    # Function to add a food item to a restaurant
     def add_food_item():
+        # Function for the submit button
         def submit_food_item():
             food_item_name = entry_name.get().strip()
             food_item_type = entry_food_type.get().strip()
@@ -546,9 +554,6 @@ def init_main_window():
                 messagebox.showinfo("Success", "Food item added successfully")
                 popup.destroy()
 
-
-
-
         # Create pop-up window
         popup = tk.Toplevel(root)
         popup.title("Add Food Item to Restaurant")
@@ -571,7 +576,9 @@ def init_main_window():
         btn_submit = ttk.Button(popup, text="Submit", command=submit_food_item)
         btn_submit.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
     
+    # Function to edit a food item of a restaurant
     def edit_food_item(event):
+        # Function for the submit button
         def submit_food_item():
             food_item_name = entry_food_name.get().strip()
             food_item_type = entry_food_type.get().strip()
@@ -605,6 +612,7 @@ def init_main_window():
                 messagebox.showinfo("Success", "Food item updated successfully")
                 popup.destroy()
 
+        # Function to delete a food item
         def delete_food_item():
             response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this food item?")
             if response:
@@ -663,6 +671,7 @@ def init_main_window():
         popup.geometry("")
         popup.mainloop()
 
+    # Function to search and sort restaurant reviews
     def search_sort_estreviews():
         month_to_num = {
             "January": 1,
@@ -680,6 +689,7 @@ def init_main_window():
             "None": 0
         }
         
+        # Fetch user inputs
         query = reviews_search.get().lower()
         month_filter = review_month_var.get()
         nummonth_filter = 0
@@ -689,6 +699,7 @@ def init_main_window():
         sort_option = sort_reviews_var.get()
         sortdir_option = sortdir_reviews_var.get()
         
+        # Query for search and sort
         conn = connect_db()
         if conn:
             cursor = conn.cursor()
@@ -729,7 +740,9 @@ def init_main_window():
             
             update_restaurant_reviews_table(rows)
         
+    # Function to edit restaurant reviews
     def edit_restaurant_review(event):
+        # Function for submit button
         def submit_review():
             review_content = entry_review_content.get().strip()
             review_rating = entry_review_rating.get().strip()
@@ -754,7 +767,8 @@ def init_main_window():
                 update_restaurant_reviews_table(restaurant_reviews)
                 restaurants = fetch_restaurants()
                 update_table(restaurants)
-                
+        
+        # Function to delete a restaurant review
         def delete_establishment_review():
             response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this establishment review?")
             if response:
@@ -845,7 +859,8 @@ def init_main_window():
         # Adjust pop-up window dimensions
         popup.geometry("800x400")
         popup.mainloop()
-        
+    
+    # Function to execute when a restaurant is selected
     def on_treeview_select(event):
         item = tree.selection()[0]
         
@@ -865,13 +880,6 @@ def init_main_window():
 
         edit_restaurant()
 
-    # Update food reviews table
-    def update_food_reviews_table(rows):
-        for row in food_reviews_tree.get_children():
-            food_reviews_tree.delete(row)
-        for row in rows:
-            food_reviews_tree.insert("", tk.END, values=row)
-
     root = tk.Tk()
     root.title("GrubHub")
     root.iconbitmap("src/Icon.ico")
@@ -888,11 +896,11 @@ def init_main_window():
     style.configure("TNotebook.Tab", font=("Inter", 10, "bold"))
     style.configure("Treeview.Heading", font=("Inter", 10, "bold"))
 
-    # Title for restaurants table
+    # ===== RESTAURANT TABLE START =====
+
     lbl_food_items = ttk.Label(root, text="Restaurants", font=("Inter", 14, "bold"), background="#FFF2DC")
     lbl_food_items.pack(side=tk.TOP, padx=5, pady=5)
 
-    # Search bar
     search_frame = ttk.Frame(root)
     search_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
     
@@ -902,14 +910,12 @@ def init_main_window():
     entry_search = ttk.Entry(search_frame, width=30)
     entry_search.pack(side=tk.LEFT, padx=5)
 
-    # Dropdown for rating filter
     rating_var = tk.StringVar()
     rating_options = ["None", "1 Star", "2 Stars and Up", "3 Stars and Up", "4 Stars and Up", "5 Stars"]
     rating_dropdown = ttk.Combobox(search_frame, textvariable=rating_var, values=rating_options, state="readonly")
     rating_dropdown.set("None")
     rating_dropdown.pack(side=tk.LEFT, padx=5)
 
-    # Sorting
     lbl_sort = ttk.Label(search_frame, text="Sort", font=("Inter", 10))
     lbl_sort.pack(side=tk.LEFT, padx=5)
 
@@ -928,7 +934,6 @@ def init_main_window():
     btn_search_sort = ttk.Button(search_frame, text="Search & Sort", command=search_sort_restaurants)
     btn_search_sort.pack(side=tk.LEFT, padx=5)
 
-    # Add restaurant
     btn_add_restaurant = ttk.Button(search_frame, text="Add Restaurant", command=add_restaurant)
     btn_add_restaurant.pack(side=tk.RIGHT, padx=5)
     
@@ -939,23 +944,23 @@ def init_main_window():
         tree.heading(col, text=col)
         tree.column(col, anchor="center", width=50)
     tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
-    
 
-    # Title for food items table
+    # ===== RESTAURANT TABLE END =====
+    
+    # ===== FOOD ITEM TABLE START =====
+
     lbl_food_items = ttk.Label(root, text="Food Items", font=("Inter", 14, "bold"), background="#FFF2DC")
     lbl_food_items.pack(side=tk.TOP, padx=5, pady=5)
     
     food_item_frame = ttk.Frame(root)
     food_item_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
 
-    # Add food item
     btn_add_food_item = ttk.Button(food_item_frame, text="Add Food Item", command=add_food_item)
     btn_add_food_item.pack(side=tk.RIGHT, padx=5)
 
     show_all_food_frame = ttk.Frame(root)
     show_all_food_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
 
-    # Button to show all food items
     btn_show_all_food_items = ttk.Button(food_item_frame, text="Show All Food Items", command=show_all_food_items)
     btn_show_all_food_items.pack(side=tk.RIGHT, padx=5)
 
@@ -966,14 +971,11 @@ def init_main_window():
     entry_food_item_search.pack(side=tk.LEFT, padx=5)
 
     food_type_options = fetch_food_item_types()
-
-    # Dropdown for rating filter
     food_type_var = tk.StringVar()
     food_type_dropdown = ttk.Combobox(food_item_frame, textvariable=food_type_var, values=food_type_options, state="readonly")
     food_type_dropdown.set("None")
     food_type_dropdown.pack(side=tk.LEFT, padx=5)
 
-    # Sorting
     lbl_sort_food_item = ttk.Label(food_item_frame, text="Sort", font=("Inter", 10))
     lbl_sort_food_item.pack(side=tk.LEFT, padx=5)
 
@@ -1003,8 +1005,7 @@ def init_main_window():
 
     btn_search_sort = ttk.Button(food_item_frame, text="Search & Sort", command=search_sort_food_items)
     btn_search_sort.pack(side=tk.LEFT, padx=5)
-    
-    # Table for displaying food items
+
     food_items_columns = ("Food ID", "Restaurant Name", "Food Name", "Price", "Food Type", "Average Rating")
     food_items_tree = ttk.Treeview(root, columns=food_items_columns, show="headings", height=5)
     for col in food_items_columns:
@@ -1013,10 +1014,9 @@ def init_main_window():
 
     food_items_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
 
+    # ===== FOOD ITEM TABLE END =====
 
-    ##########show all food items in a new window = need na asa table mismo!
-
-    # Restaurant Reviews
+    # ===== RESTAURANT REVIEW START =====
     
     lbl_Reviews = ttk.Label(root, text="Reviews", font=("Inter", 14, "bold"), background="#FFF2DC")
     lbl_Reviews.pack(side=tk.TOP, padx=5, pady=5)
@@ -1032,7 +1032,6 @@ def init_main_window():
 
     review_month_options = ["None", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
-    # Dropdown for month filter
     review_month_var = tk.StringVar()
     review_month_dropdown = ttk.Combobox(reviews_frame, textvariable=review_month_var, values=review_month_options, state="readonly")
     review_month_dropdown.set("None")
@@ -1047,7 +1046,6 @@ def init_main_window():
     reviews_year.pack(side=tk.LEFT, padx=5)
     reviews_year.insert(0, curyear)
 
-    # Sorting
     lbl_sort_reviews = ttk.Label(reviews_frame, text="Sort", font=("Inter", 10))
     lbl_sort_reviews.pack(side=tk.LEFT, padx=5)
 
@@ -1066,17 +1064,17 @@ def init_main_window():
     btn_search_sort = ttk.Button(reviews_frame, text="Search & Sort", command=search_sort_estreviews)
     btn_search_sort.pack(side=tk.LEFT, padx=5)
 
-    # Add restaurant review
     btn_add_restaurant_review = ttk.Button(reviews_frame, text="Add Restaurant Review", command=add_restaurant_review)
     btn_add_restaurant_review.pack(side=tk.RIGHT, padx=5)
 
-    # Table for displaying restaurant reviews
     restaurant_reviews_columns = ("ID", "Username", "Content", "Rating", "Date")
     restaurant_reviews_tree = ttk.Treeview(root, columns=restaurant_reviews_columns, show="headings", height=5)
     for col in restaurant_reviews_columns:
         restaurant_reviews_tree.heading(col, text=col)
         restaurant_reviews_tree.column(col, anchor="center", width=50)
     restaurant_reviews_tree.pack(side=tk.TOP, fill=tk.X, expand=False, padx=10, pady=10)
+
+    # ===== RESTAURANT REVIEW END =====
         
     tree.bind("<<TreeviewSelect>>", on_treeview_select)
     food_items_tree.bind("<<TreeviewSelect>>", edit_food_item)
@@ -1104,6 +1102,13 @@ def init_main_window():
             restaurant_reviews_tree.delete(row)
         for row in rows:
             restaurant_reviews_tree.insert("", tk.END, values=row)
+
+    # Update food reviews table
+    def update_food_reviews_table(rows):
+        for row in food_reviews_tree.get_children():
+            food_reviews_tree.delete(row)
+        for row in rows:
+            food_reviews_tree.insert("", tk.END, values=row)
 
 ##############/////
     # Label for Food Reviews
