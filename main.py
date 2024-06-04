@@ -27,10 +27,8 @@ def fetch_restaurants():
         return rows
     return []
 
-
-
-# Fetch all food items or the food items of a specific establishment
-def fetch_food_items(establishment_id=None):
+# Fetch all food items of the selected item (based on the restaurant selected) from the database
+def fetch_food_items(establishment_id):
     conn = connect_db()
     if conn:
         cursor = conn.cursor()
@@ -665,6 +663,72 @@ def init_main_window():
         # Adjust pop-up window dimensions
         popup.geometry("")
         popup.mainloop()
+
+    def search_sort_estreviews():
+        month_to_num = {
+            "January": 1,
+            "February": 2,
+            "March": 3,
+            "April": 4,
+            "May": 5,
+            "June": 6,
+            "July": 7,
+            "August": 8,
+            "September": 9,
+            "October": 10,
+            "November": 11,
+            "December": 12,
+            "None": 0
+        }
+        
+        query = reviews_search.get().lower()
+        month_filter = review_month_var.get()
+        nummonth_filter = 0
+        if (month_filter != "None"):
+            nummonth_filter = month_to_num.get(month_filter)
+        year_filter = reviews_year.get()
+        sort_option = sort_reviews_var.get()
+        sortdir_option = sortdir_reviews_var.get()
+        
+        conn = connect_db()
+        if conn:
+            cursor = conn.cursor()
+            
+            base_query = "SELECT rr.establishment_reviews_id, c.username, rr.content, rr.rating, rr.date FROM establishment_reviews rr NATURAL JOIN customer c"
+            conditions = []
+            query_params = []
+
+            conditions.append(" rr.establishment_id = ?")
+            query_params.append(selected_restaurant_id)
+
+            if nummonth_filter != 0:
+                conditions.append("MONTH(rr.date) = ?")
+                query_params.append(nummonth_filter)
+            
+            if query:
+                conditions.append("LOWER(c.username) LIKE ?")
+                query_params.append(f"%{query}%")
+
+            if year_filter:
+                conditions.append("YEAR(rr.date) = ?")
+                query_params.append(int(year_filter))
+            
+            if conditions:
+                base_query += " WHERE " + " AND ".join(conditions)
+            
+            if sort_option == "Username":
+                base_query += " ORDER BY c.username"
+            elif sort_option == "Rating":
+                base_query += " ORDER BY rr.rating"
+            
+            if sortdir_option.lower() == "descending":
+                base_query += " DESC"
+            
+            cursor.execute(base_query, query_params)
+            rows = cursor.fetchall()
+            conn.close()
+            
+            update_restaurant_reviews_table(rows)
         
     def edit_restaurant_review(event):
         def submit_review():
@@ -841,10 +905,6 @@ def init_main_window():
     btn_search_sort = ttk.Button(search_frame, text="Search & Sort", command=search_sort_restaurants)
     btn_search_sort.pack(side=tk.LEFT, padx=5)
 
-    # Add restaurant review
-    btn_add_restaurant_review = ttk.Button(search_frame, text="Add Restaurant Review", command=add_restaurant_review)
-    btn_add_restaurant_review.pack(side=tk.RIGHT, padx=5)
-
     # Add restaurant
     btn_add_restaurant = ttk.Button(search_frame, text="Add Restaurant", command=add_restaurant)
     btn_add_restaurant.pack(side=tk.RIGHT, padx=5)
@@ -914,7 +974,6 @@ def init_main_window():
     btn_search_sort = ttk.Button(food_item_frame, text="Search & Sort", command=search_sort_food_items)
     btn_search_sort.pack(side=tk.LEFT, padx=5)
     
-
     # Table for displaying food items
     food_items_columns = ("Food ID", "Restaurant Name", "Food Name", "Price", "Food Type", "Average Rating")
     food_items_tree = ttk.Treeview(root, columns=food_items_columns, show="headings", height=5)
@@ -966,6 +1025,55 @@ def init_main_window():
     
     lbl_Reviews = ttk.Label(root, text="Reviews", font=("Inter", 14, "bold"), background="#FFF2DC")
     lbl_Reviews.pack(side=tk.TOP, padx=5, pady=5)
+
+    reviews_frame = ttk.Frame(root)
+    reviews_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
+
+    lbl_reviews_search = ttk.Label(reviews_frame, text="Search", font=("Inter", 10))
+    lbl_reviews_search.pack(side=tk.LEFT, padx=5)
+    
+    reviews_search = ttk.Entry(reviews_frame, width=30)
+    reviews_search.pack(side=tk.LEFT, padx=5)
+
+    review_month_options = ["None", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+    # Dropdown for month filter
+    review_month_var = tk.StringVar()
+    review_month_dropdown = ttk.Combobox(reviews_frame, textvariable=review_month_var, values=review_month_options, state="readonly")
+    review_month_dropdown.set("None")
+    review_month_dropdown.pack(side=tk.LEFT, padx=5)
+
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT YEAR(CURDATE())")
+        curyear = cursor.fetchone()[0]
+    reviews_year = ttk.Entry(reviews_frame, width=30)
+    reviews_year.pack(side=tk.LEFT, padx=5)
+    reviews_year.insert(0, curyear)
+
+    # Sorting
+    lbl_sort_reviews = ttk.Label(reviews_frame, text="Sort", font=("Inter", 10))
+    lbl_sort_reviews.pack(side=tk.LEFT, padx=5)
+
+    sort_reviews_var = tk.StringVar()
+    sort_reviews_options = ["None", "Username", "Rating"]
+    sort_reviews_dropdown = ttk.Combobox(reviews_frame, textvariable=sort_reviews_var, values=sort_reviews_options, state="readonly")
+    sort_reviews_dropdown.set("None")
+    sort_reviews_dropdown.pack(side=tk.LEFT, padx=5)
+
+    sortdir_reviews_var = tk.StringVar()
+    sortdir_reviews_options = ["Ascending", "Descending"]
+    sortdir_reviews_dropdown = ttk.Combobox(reviews_frame, textvariable=sortdir_reviews_var, values=sortdir_reviews_options, state="readonly")
+    sortdir_reviews_dropdown.set("Ascending")
+    sortdir_reviews_dropdown.pack(side=tk.LEFT, padx=5)
+
+    btn_search_sort = ttk.Button(reviews_frame, text="Search & Sort", command=search_sort_estreviews)
+    btn_search_sort.pack(side=tk.LEFT, padx=5)
+
+    # Add restaurant review
+    btn_add_restaurant_review = ttk.Button(reviews_frame, text="Add Restaurant Review", command=add_restaurant_review)
+    btn_add_restaurant_review.pack(side=tk.RIGHT, padx=5)
 
     # Table for displaying restaurant reviews
     restaurant_reviews_columns = ("ID", "Username", "Content", "Rating", "Date")
