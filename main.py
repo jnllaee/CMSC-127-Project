@@ -35,7 +35,7 @@ def fetch_food_items(establishment_id):
         if establishment_id:
             cursor.execute(
                 """
-                SELECT fe.name, fi.name, fit.food_type, fi.price, fi.average_rating
+                SELECT fi.item_id, fe.name, fi.name, fit.food_type, fi.price, fi.average_rating
                 FROM food_item fi
                 NATURAL JOIN food_item_type fit
                 JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id
@@ -98,7 +98,13 @@ def fetch_food_reviews(item_id):
     conn = connect_db()
     if conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT fr.item_id, c.username, fr.content, fr.rating, fr.date FROM customer c NATURAL JOIN food_reviews fr WHERE fr.item_id=?", (item_id,))
+        cursor.execute("""SELECT fr.food_reviews_id, fi.name, c.username, fr.content, fr.rating, fr.date
+            FROM customer c 
+            RIGHT JOIN food_reviews fr 
+            ON c.customer_id=fr.customer_id 
+            LEFT JOIN food_item fi 
+            ON fr.item_id = fi.item_id 
+            WHERE fr.item_id=?""", (item_id,))
         rows = cursor.fetchall()
         conn.close()
         return rows
@@ -1208,7 +1214,7 @@ def init_main_window():
     btn_search_sort = ttk.Button(food_item_frame, text="Search & Sort", command=search_sort_food_items)
     btn_search_sort.pack(side=tk.LEFT, padx=5)
 
-    food_items_columns = ("Restaurant Name", "Food Name", "Food Type", "Price", "Average Rating")
+    food_items_columns = ("Food ID", "Restaurant Name", "Food Name", "Food Type", "Price", "Average Rating")
     food_items_tree = ttk.Treeview(root, columns=food_items_columns, show="headings", height=5)
     for col in food_items_columns:
         food_items_tree.heading(col, text=col)
