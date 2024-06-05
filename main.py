@@ -428,6 +428,10 @@ def init_main_window():
                     update_table(restaurants)
                     food_items = fetch_food_items(selected_restaurant_id)
                     update_food_items_table(food_items)
+                    restaurant_reviews = fetch_restaurant_reviews(selected_food_item_id)
+                    update_restaurant_reviews_table(restaurant_reviews)
+                    food_reviews = fetch_food_reviews(food_item[0])
+                    update_food_reviews_table(food_reviews)
 
         # Fetch current restaurant details
         conn = connect_db()
@@ -819,12 +823,20 @@ def init_main_window():
                                (selected_restaurant_id,))
                     average_rating = cursor.fetchone()[0]
                     
-                    cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
-                                (average_rating, selected_restaurant_id))
-                    conn.commit()
-                    conn.close()
-                    messagebox.showinfo("Success", "Establishment review successfully deleted")
-                    review_popup.destroy()
+                    if average_rating:
+                        cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
+                                    (average_rating, selected_restaurant_id))
+                        conn.commit()
+                        conn.close()
+                        messagebox.showinfo("Success", "Establishment review successfully deleted")
+                        review_popup.destroy()
+                    else:
+                        cursor.execute("UPDATE food_establishment SET average_rating=0.00 WHERE establishment_id=?", 
+                                    (selected_restaurant_id,))
+                        conn.commit()
+                        conn.close()
+                        messagebox.showinfo("Success", "Establishment review successfully deleted")
+                        review_popup.destroy()
                     
                     restaurant_reviews = fetch_restaurant_reviews(selected_restaurant_id)
                     update_restaurant_reviews_table(restaurant_reviews)
@@ -1180,12 +1192,19 @@ def init_main_window():
                     cursor.execute("DELETE FROM food_reviews WHERE food_reviews_id=?", (selected_food_review_id,))
                     cursor.execute("SELECT AVG(rating) FROM food_reviews WHERE item_id=?", (selected_food_item_id,))
                     average_rating = cursor.fetchone()[0]
-                
-                    cursor.execute("UPDATE food_item SET average_rating=? WHERE item_id=?", (average_rating, selected_food_item_id))
-                    conn.commit()
-                    conn.close()
-                    messagebox.showinfo("Success", "Food item successfully deleted")
-                    review_popup.destroy()
+
+                    if average_rating:
+                        cursor.execute("UPDATE food_item SET average_rating=? WHERE item_id=?", (average_rating, selected_food_item_id))
+                        conn.commit()
+                        conn.close()
+                        messagebox.showinfo("Success", "Food item successfully deleted")
+                        review_popup.destroy()
+                    else:
+                        cursor.execute("UPDATE food_item SET average_rating=0.00 WHERE item_id=?", (selected_food_item_id,))
+                        conn.commit()
+                        conn.close()
+                        messagebox.showinfo("Success", "Food item successfully deleted")
+                        review_popup.destroy()
                     
                     reviews = fetch_food_reviews(selected_food_item_id)
                     update_food_reviews_table(reviews)
