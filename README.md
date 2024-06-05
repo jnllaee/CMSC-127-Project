@@ -6,16 +6,16 @@ A database management system for recording data on food reviews and food items f
 
 ### Features
 
-- [] Add, update, delete a review on a food establishment or food item
-  - [] Food Establishment
+- [x] Add, update, delete a review on a food establishment or food item
+  - [x] Food Establishment
     - [x] Add
     - [x] Update
     - [x] Delete
     - [x] Search
-  - [] Food Item
+  - [x] Food Item
     - [x] Add
-    - [] Update
-    - [] Delete
+    - [x] Update
+    - [x] Delete
     - [x] Search
 - [x] Add, update, delete, search a food establishment
   - [x] Add
@@ -31,9 +31,9 @@ A database management system for recording data on food reviews and food items f
 ### Reports to be generated
 
 - [x] View all food establishments
-- [] View all food reviews for an establishment or a food item
+- [x] View all food reviews for an establishment or a food item
   - [x] View all reviews for an establishment
-  - [] View all reviews for a food item
+  - [x] View all reviews for a food item
 - [x] View all food items from an establishment
 - [x] View all food items from an establishment that belong to a food type
 - [x] View all reviews made within a month for an establishment or food item

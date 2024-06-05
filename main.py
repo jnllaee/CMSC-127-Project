@@ -323,9 +323,9 @@ def init_main_window():
             if conn:
                 cursor = conn.cursor()
                 cursor.execute("INSERT INTO establishment_reviews (establishment_id, customer_id, content, rating, date) VALUES (?, ?, ?, ?, CURDATE())",
-                (establishment_id, customer_id, content, rating))
+                (selected_restaurant_id, customer_id, content, rating))
                 cursor.execute("SELECT AVG(rating) FROM establishment_reviews WHERE establishment_id=?", 
-                               (establishment_id,))
+                               (selected_restaurant_id,))
                 average_rating = cursor.fetchone()[0]
                 
                 cursor.execute("UPDATE food_establishment SET average_rating=? WHERE establishment_id=?", 
@@ -494,7 +494,7 @@ def init_main_window():
             cursor = conn.cursor()
             
             base_query = """
-                SELECT fi.item_id, fe.name, fi.name, fi.price, fit.food_type, fi.average_rating
+                SELECT fi.item_id, fe.name, fi.name, fit.food_type, fi.price, fi.average_rating
                 FROM food_item fi
                 NATURAL JOIN food_item_type fit
                 JOIN food_establishment fe ON fi.establishment_id = fe.establishment_id
@@ -960,6 +960,75 @@ def init_main_window():
         customer_popup.mainloop()
         return
     
+    # Function to search and sort food item reviews
+    def search_sort_foodreviews():
+        month_to_num = {
+            "January": 1,
+            "February": 2,
+            "March": 3,
+            "April": 4,
+            "May": 5,
+            "June": 6,
+            "July": 7,
+            "August": 8,
+            "September": 9,
+            "October": 10,
+            "November": 11,
+            "December": 12,
+            "None": 0
+        }
+        
+        # Fetch user inputs
+        query = freviews_search.get().lower()
+        month_filter = freview_month_var.get()
+        nummonth_filter = 0
+        if (month_filter != "None"):
+            nummonth_filter = month_to_num.get(month_filter)
+        year_filter = freviews_year.get()
+        sort_option = sort_freviews_var.get()
+        sortdir_option = sortdir_freviews_var.get()
+        
+        # Query for search and sort
+        conn = connect_db()
+        if conn:
+            cursor = conn.cursor()
+            
+            base_query = "SELECT fr.food_reviews_id, fi.name, c.username, fr.content, fr.rating, fr.date FROM food_reviews fr NATURAL JOIN customer c JOIN food_item fi ON fr.item_id=fr.item_id"
+            conditions = []
+            query_params = []
+
+            conditions.append(" fr.item_id = ?")
+            query_params.append(int(selected_food_item_id))
+
+            if nummonth_filter != 0:
+                conditions.append("MONTH(fr.date) = ?")
+                query_params.append(nummonth_filter)
+            
+            if query:
+                conditions.append("LOWER(c.username) LIKE ?")
+                query_params.append(f"%{query}%")
+
+            if year_filter:
+                conditions.append("YEAR(fr.date) = ?")
+                query_params.append(int(year_filter))
+            
+            if conditions:
+                base_query += " WHERE " + " AND ".join(conditions)
+            
+            if sort_option == "Username":
+                base_query += " ORDER BY c.username"
+            elif sort_option == "Rating":
+                base_query += " ORDER BY fr.rating"
+            
+            if sortdir_option.lower() == "descending":
+                base_query += " DESC"
+            
+            cursor.execute(base_query, query_params)
+            rows = cursor.fetchall()
+            conn.close()
+            
+            update_food_reviews_table(rows)
+    
     # Function to display all food item reviews
     def show_all_food_reviews():
         all_food_reviews = fetch_all_food_reviews()
@@ -1414,7 +1483,8 @@ def init_main_window():
     freviews_search.pack(side=tk.LEFT, padx=5)
 
     freview_month_var = tk.StringVar()
-    freview_month_dropdown = ttk.Combobox(top1_frame, textvariable=freview_month_var, values=review_month_options, state="readonly")
+    freview_month_options = ["None", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    freview_month_dropdown = ttk.Combobox(top1_frame, textvariable=freview_month_var, values=freview_month_options, state="readonly")
     freview_month_dropdown.set("None")
     freview_month_dropdown.pack(side=tk.LEFT, padx=5)
 
@@ -1426,6 +1496,7 @@ def init_main_window():
         year_row1 = cursor.fetchone()
         if year_row:
             curyear1 = year_row1[0]
+            print(curyear1)
 
     freviews_year = ttk.Entry(top1_frame, width=10)
     freviews_year.pack(side=tk.LEFT, padx=5)
@@ -1435,16 +1506,18 @@ def init_main_window():
     lbl_sort_freviews.pack(side=tk.LEFT, padx=5)
 
     sort_freviews_var = tk.StringVar()
-    sort_freviews_dropdown = ttk.Combobox(top1_frame, textvariable=sort_freviews_var, values=sort_reviews_options, state="readonly")
+    sort_freviews_options = ["None", "Username", "Rating"]
+    sort_freviews_dropdown = ttk.Combobox(top1_frame, textvariable=sort_freviews_var, values=sort_freviews_options, state="readonly")
     sort_freviews_dropdown.set("None")
     sort_freviews_dropdown.pack(side=tk.LEFT, padx=5)
 
     sortdir_freviews_var = tk.StringVar()
-    sortdir_freviews_dropdown = ttk.Combobox(top1_frame, textvariable=sortdir_freviews_var, values=sortdir_reviews_options, state="readonly")
+    sortdir_freviews_options = ["Ascending", "Descending"]
+    sortdir_freviews_dropdown = ttk.Combobox(top1_frame, textvariable=sortdir_freviews_var, values=sortdir_freviews_options, state="readonly")
     sortdir_freviews_dropdown.set("Ascending")
     sortdir_freviews_dropdown.pack(side=tk.LEFT, padx=5)
 
-    btn_fsearch_sort = ttk.Button(top1_frame, text="Search & Sort")
+    btn_fsearch_sort = ttk.Button(top1_frame, text="Search & Sort", command=search_sort_foodreviews)
     btn_fsearch_sort.pack(side=tk.LEFT, padx=5)
 
     btn_add_food_review = ttk.Button(top1_frame, text="Add Food Item Review", command=add_food_item_review)
