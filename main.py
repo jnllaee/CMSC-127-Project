@@ -668,6 +668,8 @@ def init_main_window():
                     
                     food_items = fetch_food_items(selected_restaurant_id)
                     update_food_items_table(food_items)
+                    food_reviews = fetch_food_reviews(selected_food_item_id)
+                    update_food_reviews_table(food_reviews)
     
         food_item = food_items_tree.selection()
         selected_food_item_id = food_items_tree.item(food_item, "values")[0]
